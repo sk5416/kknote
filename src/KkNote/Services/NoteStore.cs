@@ -40,6 +40,15 @@ public sealed class NoteStore : IDisposable
             Normalize(note);
             Notes.Add(note);
         }
+        if (Settings.SpreadPages)
+        {
+            foreach (var note in Notes)
+            {
+                if (note.PinnedToDesktop)
+                    note.Detached = true;
+            }
+            Settings.SpreadPages = false;
+        }
         _suppress = false;
     }
 
@@ -96,6 +105,16 @@ public sealed class NoteStore : IDisposable
     }
 
     public void Delete(Note note) => Notes.Remove(note);
+
+    public event Action<Note>? ActivateRequested;
+
+    public void RequestActivate(Note note) => ActivateRequested?.Invoke(note);
+
+    public IReadOnlyList<Note> DesktopPages()
+        => Notes.Where(item => item.PinnedToDesktop).ToList();
+
+    public IReadOnlyList<Note> StackedPages()
+        => Notes.Where(item => item.PinnedToDesktop && !item.Detached).ToList();
 
     public void ScheduleSave()
     {
@@ -279,6 +298,7 @@ public sealed class NoteStore : IDisposable
         Title = note.Title,
         Text = note.Text,
         PinnedToDesktop = note.PinnedToDesktop,
+        Detached = note.Detached,
         AlwaysOnTop = note.AlwaysOnTop,
         Background = note.Background,
         FontFamily = note.FontFamily,

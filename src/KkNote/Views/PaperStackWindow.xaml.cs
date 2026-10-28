@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using KkNote.Converters;
@@ -32,7 +33,7 @@ public partial class PaperStackWindow : Window
         Topmost = store.Settings.StackAlwaysOnTop;
         _internal = true;
         PinButton.IsChecked = store.Settings.StackAlwaysOnTop;
-        SpreadToggle.IsChecked = store.Settings.SpreadPages;
+        SpreadToggle.IsChecked = false;
         _internal = false;
         store.Notes.CollectionChanged += OnNotesChanged;
         foreach (var note in store.Notes)
@@ -41,6 +42,14 @@ public partial class PaperStackWindow : Window
     }
 
     public bool SuppressUnpin { get; set; }
+
+    public void ShowPage(Note note)
+    {
+        if (note.PinnedToDesktop && !note.Detached)
+            SelectCurrent(note);
+        Show();
+        Activate();
+    }
 
     public void RequestClose()
     {
@@ -103,14 +112,14 @@ public partial class PaperStackWindow : Window
             SaveBounds();
     }
 
-    private List<Note> Pinned => _store.Notes.Where(item => item.PinnedToDesktop).ToList();
+    private List<Note> Stacked => _store.StackedPages().ToList();
 
     private Note? FindInitial()
     {
-        var pinned = Pinned;
-        if (pinned.Count == 0)
+        var stacked = Stacked;
+        if (stacked.Count == 0)
             return null;
-        return pinned.FirstOrDefault(item => item.Id == _store.Settings.StackCurrentId) ?? pinned[0];
+        return stacked.FirstOrDefault(item => item.Id == _store.Settings.StackCurrentId) ?? stacked[0];
     }
 
     private void OnNotesChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -149,7 +158,7 @@ public partial class PaperStackWindow : Window
     {
         if (sender is not Note note)
             return;
-        if (e.PropertyName == nameof(Note.PinnedToDesktop))
+        if (e.PropertyName is nameof(Note.PinnedToDesktop) or nameof(Note.Detached))
         {
             RefreshPinned();
             return;
@@ -159,9 +168,8 @@ public partial class PaperStackWindow : Window
             return;
         if (e.PropertyName == nameof(Note.Title) && !_internal)
         {
-            if (TitleBox.Text != note.Title)
-                TitleBox.Text = note.Title;
-            Title = string.IsNullOrWhiteSpace(note.Title) ? "便签" : note.Title;
+            TitleLabel.Text = note.DisplayTitle;
+            Title = note.DisplayTitle;
         }
         else if (e.PropertyName == nameof(Note.Text) && !_internal && !Body.IsKeyboardFocused)
         {
@@ -178,8 +186,8 @@ public partial class PaperStackWindow : Window
 
     private void RefreshPinned()
     {
-        var pinned = Pinned;
-        if (pinned.Count == 0)
+        var stacked = Stacked;
+        if (stacked.Count == 0)
         {
             if (!_closing)
             {
@@ -189,8 +197,8 @@ public partial class PaperStackWindow : Window
             return;
         }
 
-        if (_current == null || !_current.PinnedToDesktop)
-            SelectCurrent(pinned[0]);
+        if (_current == null || !_current.PinnedToDesktop || _current.Detached)
+            SelectCurrent(stacked[0]);
         else
         {
             ApplyChrome();
@@ -205,11 +213,12 @@ public partial class PaperStackWindow : Window
             return;
         _store.Settings.StackCurrentId = note.Id;
         _internal = true;
-        TitleBox.Text = note.Title;
+        TitleLabel.Text = note.DisplayTitle;
         Body.Text = note.Text;
         Placeholder.Visibility = string.IsNullOrEmpty(note.Text) ? Visibility.Visible : Visibility.Collapsed;
+        SpreadToggle.IsChecked = false;
         _internal = false;
-        Title = string.IsNullOrWhiteSpace(note.Title) ? "便签" : note.Title;
+        Title = note.DisplayTitle;
         ApplyChrome();
         RebuildPeeks();
     }
@@ -227,8 +236,7 @@ public partial class PaperStackWindow : Window
         Root.BorderBrush = light ? ColorUtil.Brush("#D9CDBB") : ColorUtil.Brush("#34506A");
         FrontPaper.BorderBrush = light ? ColorUtil.Brush("#E2D6C4") : ColorUtil.Brush("#34506A");
         var ink = ColorUtil.Brush(_current.FontColor, Palette.DefaultFont);
-        TitleBox.Foreground = ink;
-        TitleBox.CaretBrush = ink;
+        TitleLabel.Foreground = ink;
         Body.Foreground = ink;
         Body.CaretBrush = ink;
         Body.FontFamily = new FontFamily(FontCatalog.Normalize(_current.FontFamily));
@@ -248,20 +256,20 @@ public partial class PaperStackWindow : Window
     private void RebuildPeeks()
     {
         PeekLayer.Children.Clear();
-        var pinned = Pinned;
-        var count = pinned.Count;
-        PageBadge.Text = count <= 1 ? "" : $"{pinned.IndexOf(_current!) + 1} / {count}";
-        var stacked = count > 1;
-        FrontPaper.Margin = stacked ? new Thickness(0, 0, 28, 24) : new Thickness(2, 2, 6, 6);
-        if (!stacked || _current == null)
+        var stacked = Stacked;
+        var count = stacked.Count;
+        PageBadge.Text = count <= 1 ? "" : $"{stacked.IndexOf(_current!) + 1} / {count}";
+        var many = count > 1;
+        FrontPaper.Margin = many ? new Thickness(0, 0, 28, 24) : new Thickness(2, 2, 6, 6);
+        if (!many || _current == null)
             return;
-        var index = Math.Max(0, pinned.IndexOf(_current));
+        var index = Math.Max(0, stacked.IndexOf(_current));
         var behind = Math.Min(count - 1, 3);
         double[] angles = [4, 8, 12];
         double[] shift = [8, 14, 20];
         for (var i = behind; i >= 1; i--)
         {
-            var page = pinned[(index + i) % count];
+            var page = stacked[(index + i) % count];
             var depth = behind - i;
             PeekLayer.Children.Add(CreatePeek(page, angles[Math.Min(depth, 2)], shift[Math.Min(depth, 2)], depth));
         }
@@ -318,16 +326,6 @@ public partial class PaperStackWindow : Window
         return border;
     }
 
-    private void TitleBox_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_internal || _current == null)
-            return;
-        _internal = true;
-        _current.Title = TitleBox.Text;
-        _internal = false;
-        Title = string.IsNullOrWhiteSpace(_current.Title) ? "便签" : _current.Title;
-    }
-
     private void Body_TextChanged(object sender, TextChangedEventArgs e)
     {
         Placeholder.Visibility = Body.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -349,9 +347,42 @@ public partial class PaperStackWindow : Window
 
     private void SpreadToggle_Changed(object sender, RoutedEventArgs e)
     {
-        if (_internal)
+        if (_internal || _current == null || SpreadToggle.IsChecked != true)
             return;
-        _store.Settings.SpreadPages = SpreadToggle.IsChecked == true;
+        _current.X = Left + 40;
+        _current.Y = Top + 40;
+        if (ActualWidth >= NoteLimits.MinWidth)
+            _current.Width = ActualWidth;
+        if (ActualHeight >= NoteLimits.MinHeight)
+            _current.Height = ActualHeight;
+        _current.Detached = true;
+    }
+
+    private void PageMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu menu)
+            PageListMenu.Fill(menu, _store, _current);
+    }
+
+    private void Window_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (FindParent<TextBox>(e.OriginalSource as DependencyObject) != null)
+            return;
+        PageListMenu.Fill(PageMenu, _store, _current);
+        PageMenu.Placement = PlacementMode.MousePoint;
+        PageMenu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private static T? FindParent<T>(DependencyObject? start) where T : DependencyObject
+    {
+        while (start != null)
+        {
+            if (start is T match)
+                return match;
+            start = VisualTreeHelper.GetParent(start);
+        }
+        return null;
     }
 
     private void Add_Click(object sender, RoutedEventArgs e)

@@ -15,7 +15,11 @@
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display"
         FontFamily="Microsoft YaHei UI"
-        AutomationProperties.AutomationId="StickyNote">
+        AutomationProperties.AutomationId="StickyNote"
+        PreviewMouseRightButtonUp="Window_PreviewMouseRightButtonUp">
+  <Window.ContextMenu>
+    <ContextMenu x:Name="PageMenu" Opened="PageMenu_Opened"/>
+  </Window.ContextMenu>
   <shell:WindowChrome.WindowChrome>
     <shell:WindowChrome CaptionHeight="40"
                         ResizeBorderThickness="6"
@@ -33,15 +37,16 @@
       </Grid.RowDefinitions>
 
       <Grid x:Name="Header" Grid.Row="0" Background="#F6F0E4">
-        <TextBox x:Name="TitleBox"
-                 Style="{StaticResource TitleInput}"
-                 Margin="12,0,148,0"
-                 VerticalAlignment="Center"
-                 Foreground="#2A3340"
-                 AutomationProperties.AutomationId="StickyTitle"
-                 AutomationProperties.Name="便签标题"
-                 TextChanged="TitleBox_TextChanged"
-                 shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+        <TextBlock x:Name="TitleLabel"
+                   Margin="14,0,148,0"
+                   VerticalAlignment="Center"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis"
+                   IsHitTestVisible="False"
+                   Foreground="#2A3340"
+                   AutomationProperties.AutomationId="StickyTitle"
+                   AutomationProperties.Name="便签标题"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
           <ToggleButton x:Name="PinButton"
                         AutomationProperties.AutomationId="ToggleTopmost"
@@ -98,7 +103,7 @@
         <ToggleButton x:Name="SpreadToggle" DockPanel.Dock="Left" Style="{StaticResource PaperToggle}"
                       Content="单独列示" Height="28" Padding="10,2"
                       AutomationProperties.AutomationId="SpreadPages" AutomationProperties.Name="单独列示"
-                      ToolTip="勾选后每一页单独成窗"
+                      ToolTip="把当前页从纸沓里拆出来单独看"
                       Checked="SpreadToggle_Changed" Unchecked="SpreadToggle_Changed"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
           <Button Content="加页" Style="{StaticResource PaperButton}" Height="28" Margin="0,0,6,0"

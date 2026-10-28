@@ -61,11 +61,6 @@
           <Button Content="新建" Style="{StaticResource GhostButton}"
                   Padding="14,6" AutomationProperties.AutomationId="NewNote" AutomationProperties.Name="新建"
                   ToolTip="Ctrl+N" Click="New_Click"/>
-          <ToggleButton x:Name="SpreadToggle" Content="单独列示" Style="{StaticResource CheckToggle}"
-                        Margin="8,0,0,0" Padding="10,6"
-                        AutomationProperties.AutomationId="SpreadPages" AutomationProperties.Name="单独列示"
-                        ToolTip="勾选后，桌面上的每一页单独成窗；取消则叠成一沓纸"
-                        Checked="SpreadToggle_Changed" Unchecked="SpreadToggle_Changed"/>
         </StackPanel>
         <TextBlock Text="每一页都是一张便签" HorizontalAlignment="Right" VerticalAlignment="Center"
                    Foreground="{StaticResource MutedBrush}" FontSize="11"/>
@@ -212,6 +207,10 @@
                 <ToggleButton Content="显示在桌面" Style="{StaticResource CheckToggle}" Margin="0,0,8,0"
                               IsChecked="{Binding PinnedToDesktop}"
                               AutomationProperties.AutomationId="PinDesktop" AutomationProperties.Name="显示在桌面"/>
+                <ToggleButton Content="单独列示" Style="{StaticResource CheckToggle}" Margin="0,0,8,0"
+                              IsChecked="{Binding Detached}"
+                              AutomationProperties.AutomationId="SpreadPages" AutomationProperties.Name="单独列示"
+                              ToolTip="从纸沓里拆出这一页，单独成窗"/>
                 <ToggleButton Content="保持最前" Style="{StaticResource CheckToggle}"
                               IsChecked="{Binding AlwaysOnTop}"
                               AutomationProperties.AutomationId="KeepOnTop" AutomationProperties.Name="保持最前"/>

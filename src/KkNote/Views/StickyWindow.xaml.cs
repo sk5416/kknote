@@ -1,5 +1,9 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
 using KkNote.Converters;
 using KkNote.Models;
 using KkNote.Services;
@@ -8,13 +12,15 @@ namespace KkNote.Views;
 
 public partial class StickyWindow : Window
 {
+    private readonly NoteStore _store;
     private readonly Note _note;
     private bool _ready;
     private bool _closing;
+    private bool _internal;
 
     public StickyWindow(NoteStore store, Note note)
     {
-        _ = store;
+        _store = store;
         _note = note;
         DataContext = note;
         InitializeComponent();
@@ -22,7 +28,10 @@ public partial class StickyWindow : Window
         Height = Math.Max(note.Height, MinHeight);
         Left = note.X;
         Top = note.Y;
-        Title = string.IsNullOrWhiteSpace(note.Title) ? "便签" : note.Title;
+        Title = note.DisplayTitle;
+        _internal = true;
+        SpreadToggle.IsChecked = true;
+        _internal = false;
         note.PropertyChanged += OnNoteProperty;
         ApplyChrome();
     }
@@ -102,7 +111,7 @@ public partial class StickyWindow : Window
     private void OnNoteProperty(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(Note.Title))
-            Title = string.IsNullOrWhiteSpace(_note.Title) ? "便签" : _note.Title;
+            Title = _note.DisplayTitle;
         else if (e.PropertyName is nameof(Note.Background) or nameof(Note.FontColor)
                  or nameof(Note.FontFamily) or nameof(Note.FontSize) or nameof(Note.Bold))
             ApplyChrome();
@@ -117,8 +126,7 @@ public partial class StickyWindow : Window
         Header.Background = paper;
         Root.BorderBrush = light ? ColorUtil.Brush("#D9CDBB") : ColorUtil.Brush("#34506A");
         var ink = ColorUtil.Brush(_note.FontColor, Palette.DefaultFont);
-        TitleBox.Foreground = ink;
-        TitleBox.CaretBrush = ink;
+        TitleLabel.Foreground = ink;
         Body.Foreground = ink;
         Body.CaretBrush = ink;
         Body.FontFamily = new FontFamily(FontCatalog.Normalize(_note.FontFamily));
@@ -128,6 +136,7 @@ public partial class StickyWindow : Window
         Paper.BorderBrush = light ? ColorUtil.Brush("#E2D6C4") : ColorUtil.Brush("#34506A");
         PinButton.Foreground = light ? ColorUtil.Brush("#3A3228") : ColorUtil.Brush("#E7EEF9");
         CloseButton.Foreground = PinButton.Foreground;
+        SpreadToggle.Foreground = PinButton.Foreground;
         if (IsLoaded)
             WindowEffects.ApplyRounded(this, dark: !light);
     }
@@ -135,5 +144,39 @@ public partial class StickyWindow : Window
     private void Unpin_Click(object sender, RoutedEventArgs e)
     {
         _note.PinnedToDesktop = false;
+    }
+
+    private void SpreadToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_internal)
+            return;
+        _note.Detached = SpreadToggle.IsChecked == true;
+    }
+
+    private void PageMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu menu)
+            PageListMenu.Fill(menu, _store, _note);
+    }
+
+    private void Window_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (FindParent<TextBox>(e.OriginalSource as DependencyObject) != null)
+            return;
+        PageListMenu.Fill(PageMenu, _store, _note);
+        PageMenu.Placement = PlacementMode.MousePoint;
+        PageMenu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private static T? FindParent<T>(DependencyObject? start) where T : DependencyObject
+    {
+        while (start != null)
+        {
+            if (start is T match)
+                return match;
+            start = VisualTreeHelper.GetParent(start);
+        }
+        return null;
     }
 }

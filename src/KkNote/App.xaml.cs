@@ -64,7 +64,7 @@ public partial class App : Application
         _hotkey = new HotkeyService();
 
         _store.Notes.CollectionChanged += OnNotesChanged;
-        _store.Settings.PropertyChanged += OnSettingsChanged;
+        _store.ActivateRequested += ShowPage;
         foreach (var note in _store.Notes.ToList())
             Attach(note);
         RebuildDesktop();
@@ -116,14 +116,24 @@ public partial class App : Application
 
     private void OnNoteProperty(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(Note.PinnedToDesktop))
+        if (e.PropertyName is nameof(Note.PinnedToDesktop) or nameof(Note.Detached))
             RebuildDesktop();
     }
 
-    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    private void ShowPage(Note note)
     {
-        if (e.PropertyName == nameof(AppSettings.SpreadPages))
-            RebuildDesktop();
+        if (_store == null || !note.PinnedToDesktop || _desktopHidden)
+            return;
+        if (note.Detached)
+        {
+            OpenSticky(note);
+            return;
+        }
+
+        if (_stack == null)
+            OpenStack();
+        _stack?.ShowPage(note);
+        _stack?.Activate();
     }
 
     private void RebuildDesktop()
@@ -133,43 +143,30 @@ public partial class App : Application
         _rebuilding = true;
         try
         {
-            var pinned = _store.Notes.Where(item => item.PinnedToDesktop).ToList();
             if (_desktopHidden)
             {
                 CloseDesktopWindows(suppressUnpin: true);
                 return;
             }
 
-            if (_store.Settings.SpreadPages)
+            var stacked = _store.StackedPages();
+            var detached = _store.DesktopPages().Where(item => item.Detached).ToList();
+
+            foreach (var id in _stickies.Keys.ToList())
             {
-                CloseStack(suppressUnpin: true);
-                foreach (var id in _stickies.Keys.ToList())
+                if (detached.All(item => item.Id != id))
                 {
-                    if (pinned.All(item => item.Id != id))
-                    {
-                        _stickies[id].SuppressUnpin = true;
-                        _stickies[id].RequestClose();
-                    }
+                    _stickies[id].SuppressUnpin = true;
+                    _stickies[id].RequestClose();
                 }
-
-                foreach (var note in pinned)
-                    OpenSticky(note);
-                return;
             }
 
-            foreach (var window in _stickies.Values.ToList())
-            {
-                window.SuppressUnpin = true;
-                window.RequestClose();
-            }
+            foreach (var note in detached)
+                OpenSticky(note);
 
-            if (pinned.Count == 0)
-            {
+            if (stacked.Count == 0)
                 CloseStack(suppressUnpin: true);
-                return;
-            }
-
-            if (_stack == null)
+            else if (_stack == null)
                 OpenStack();
         }
         finally

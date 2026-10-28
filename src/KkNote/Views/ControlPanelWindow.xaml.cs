@@ -22,12 +22,6 @@ public partial class ControlPanelWindow : Window
         InitializeComponent();
         NoteList.ItemsSource = store.Notes;
         BuildSwatches();
-        SpreadToggle.IsChecked = store.Settings.SpreadPages;
-        store.Settings.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(AppSettings.SpreadPages))
-                SpreadToggle.IsChecked = _store.Settings.SpreadPages;
-        };
         if (store.Notes.Count > 0)
             NoteList.SelectedIndex = 0;
         else
@@ -221,11 +215,6 @@ public partial class ControlPanelWindow : Window
         _confirmDelete = false;
         if (DeleteButton != null)
             DeleteButton.Content = "删除";
-    }
-
-    private void SpreadToggle_Changed(object sender, RoutedEventArgs e)
-    {
-        _store.Settings.SpreadPages = SpreadToggle.IsChecked == true;
     }
 
     private void Hide_Click(object sender, RoutedEventArgs e) => Close();

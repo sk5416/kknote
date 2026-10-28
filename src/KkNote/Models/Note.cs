@@ -8,6 +8,7 @@ public sealed class Note : ObservableObject
     private string _title = "";
     private string _text = "";
     private bool _pinnedToDesktop;
+    private bool _detached;
     private bool _alwaysOnTop = true;
     private string _background = Palette.DefaultBackground;
     private double _x = 120;
@@ -49,6 +50,12 @@ public sealed class Note : ObservableObject
     {
         get => _pinnedToDesktop;
         set => Set(ref _pinnedToDesktop, value);
+    }
+
+    public bool Detached
+    {
+        get => _detached;
+        set => Set(ref _detached, value);
     }
 
     public bool AlwaysOnTop

@@ -31,11 +31,11 @@ public sealed class NoteStoreTests : IDisposable
             note.FontSize = 18;
             note.FontColor = "#F5D76E";
             note.Bold = true;
+            note.Detached = true;
             note.X = 10;
             note.Y = 20;
             note.Width = 300;
             note.Height = 400;
-            store.Settings.SpreadPages = true;
             store.SaveNow();
         }
 
@@ -56,7 +56,7 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Equal(18d, restored.FontSize);
         Assert.Equal("#F5D76E", restored.FontColor);
         Assert.True(restored.Bold);
-        Assert.True(loaded.Settings.SpreadPages);
+        Assert.True(restored.Detached);
         Assert.Equal(10d, restored.X);
         Assert.Equal(20d, restored.Y);
         Assert.Equal(300d, restored.Width);
@@ -153,6 +153,27 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Equal(Palette.DefaultBackground, note.Background);
         Assert.Equal(Palette.DefaultFont, note.FontColor);
         Assert.Equal("", note.Text);
+        Assert.False(note.Detached);
+        Assert.False(store.Settings.SpreadPages);
+    }
+
+    [Fact]
+    public void LegacySpreadPages_DetachesPinnedNotes()
+    {
+        var path = Path.Combine(_directory, "spread.json");
+        File.WriteAllText(path, """
+        {
+          "settings": { "hotkey": "Ctrl+Alt+N", "spreadPages": true },
+          "notes": [
+            { "id": "a", "title": "A", "text": "a", "pinnedToDesktop": true },
+            { "id": "b", "title": "B", "text": "b", "pinnedToDesktop": false }
+          ]
+        }
+        """);
+
+        using var store = NoteStore.Load(path);
+        Assert.True(store.Notes[0].Detached);
+        Assert.False(store.Notes[1].Detached);
         Assert.False(store.Settings.SpreadPages);
     }
 

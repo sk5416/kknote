@@ -10,6 +10,8 @@ public sealed class Note : ObservableObject
     private string _title = "";
     private bool _pinnedToDesktop;
     private bool _alwaysOnTop = true;
+    private bool _spreadPages;
+    private int _currentPageIndex;
     private string _background = Palette.DefaultBackground;
     private double _x = 120;
     private double _y = 80;
@@ -52,6 +54,18 @@ public sealed class Note : ObservableObject
     {
         get => _alwaysOnTop;
         set => Set(ref _alwaysOnTop, value);
+    }
+
+    public bool SpreadPages
+    {
+        get => _spreadPages;
+        set => Set(ref _spreadPages, value);
+    }
+
+    public int CurrentPageIndex
+    {
+        get => _currentPageIndex;
+        set => Set(ref _currentPageIndex, Math.Max(0, value));
     }
 
     public string Background

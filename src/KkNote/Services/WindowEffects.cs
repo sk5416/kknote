@@ -16,15 +16,17 @@ internal static class WindowEffects
     private const uint SwpNoZOrder = 0x0004;
     private const uint SwpFrameChanged = 0x0020;
 
-    public static void ApplyRoundedDark(Window window)
+    public static void ApplyRoundedDark(Window window) => ApplyRounded(window, dark: true);
+
+    public static void ApplyRounded(Window window, bool dark)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
         if (hwnd == IntPtr.Zero)
             return;
         var preference = DwmwcpRound;
         _ = DwmSetWindowAttribute(hwnd, DwmwaWindowCornerPreference, ref preference, sizeof(int));
-        var dark = 1;
-        _ = DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref dark, sizeof(int));
+        var darkFlag = dark ? 1 : 0;
+        _ = DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref darkFlag, sizeof(int));
     }
 
     public static void MakeToolWindow(Window window)

@@ -162,17 +162,14 @@
                           ToolTip="加粗"/>
           </Grid>
 
-          <Border Grid.Row="3" CornerRadius="8" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
-                  Background="{Binding Background, Converter={StaticResource HexBrush}}">
-            <DockPanel>
-              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,8,10,0">
-                <TextBlock Text="字色" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"
-                           Foreground="{Binding FontColor, Converter={StaticResource HexBrush}}"/>
-                <StackPanel x:Name="FgSwatches" Orientation="Horizontal"/>
-              </StackPanel>
-              <views:NotePagesView Note="{Binding}"/>
-            </DockPanel>
-          </Border>
+          <DockPanel Grid.Row="3">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="2,0,0,8">
+              <TextBlock Text="字色" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"
+                         Foreground="{StaticResource MutedBrush}"/>
+              <StackPanel x:Name="FgSwatches" Orientation="Horizontal"/>
+            </StackPanel>
+            <views:NotePagesView Note="{Binding}"/>
+          </DockPanel>
 
           <Grid Grid.Row="4" Margin="0,8,0,0">
             <StackPanel Orientation="Horizontal">

@@ -30,6 +30,7 @@ public sealed class NoteStoreTests : IDisposable
             note.FontSize = 18;
             note.FontColor = "#F5D76E";
             note.Bold = true;
+            note.SpreadPages = true;
             note.X = 10;
             note.Y = 20;
             note.Width = 300;
@@ -54,6 +55,7 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Equal(18d, restored.FontSize);
         Assert.Equal("#F5D76E", restored.FontColor);
         Assert.True(restored.Bold);
+        Assert.True(restored.SpreadPages);
         Assert.Equal(10d, restored.X);
         Assert.Equal(20d, restored.Y);
         Assert.Equal(300d, restored.Width);
@@ -107,6 +109,19 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Equal(NoteLimits.MinHeight, note.Height);
         var page = Assert.Single(note.Pages);
         Assert.False(string.IsNullOrWhiteSpace(page.Id));
+        Assert.False(note.SpreadPages);
+    }
+
+    [Fact]
+    public void NewNote_UsesLightPaperAndStackedPages()
+    {
+        var path = Path.Combine(_directory, "fresh.json");
+        using var store = NoteStore.Load(path);
+        var note = store.AddNew();
+        Assert.Equal(Palette.DefaultBackground, note.Background);
+        Assert.Equal(Palette.DefaultFont, note.FontColor);
+        Assert.False(note.SpreadPages);
+        Assert.Single(note.Pages);
     }
 
     public void Dispose()

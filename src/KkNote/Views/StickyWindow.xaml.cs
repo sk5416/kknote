@@ -40,7 +40,7 @@ public partial class StickyWindow : Window
     {
         base.OnSourceInitialized(e);
         WindowEffects.MakeToolWindow(this);
-        WindowEffects.ApplyRoundedDark(this);
+        WindowEffects.ApplyRounded(this, dark: !ColorUtil.IsLight(_note.Background));
     }
 
     protected override void OnContentRendered(EventArgs e)
@@ -110,11 +110,18 @@ public partial class StickyWindow : Window
     private void ApplyChrome()
     {
         var light = ColorUtil.IsLight(_note.Background);
-        Root.Background = ColorUtil.Brush(_note.Background);
-        Header.Background = ColorUtil.Shade(_note.Background, light ? 0.94 : 0.72);
-        Root.BorderBrush = light ? ColorUtil.Brush("#D5D0C4") : ColorUtil.Brush("#34506A");
-        TitleBox.Foreground = ColorUtil.Brush(_note.FontColor);
-        TitleBox.CaretBrush = ColorUtil.Brush(_note.FontColor);
+        var paper = ColorUtil.Brush(_note.Background, Palette.DefaultBackground);
+        var desk = ColorUtil.ShiftBrush(_note.Background, light ? -0.06 : 0.08);
+        Root.Background = desk;
+        Header.Background = paper;
+        Root.BorderBrush = light ? ColorUtil.Brush("#D9CDBB") : ColorUtil.Brush("#34506A");
+        var ink = ColorUtil.Brush(_note.FontColor, Palette.DefaultFont);
+        TitleBox.Foreground = ink;
+        TitleBox.CaretBrush = ink;
+        PinButton.Foreground = light ? ColorUtil.Brush("#3A3228") : ColorUtil.Brush("#E7EEF9");
+        CloseButton.Foreground = PinButton.Foreground;
+        if (IsLoaded)
+            WindowEffects.ApplyRounded(this, dark: !light);
     }
 
     private void Unpin_Click(object sender, RoutedEventArgs e)

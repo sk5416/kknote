@@ -39,7 +39,34 @@ public static class ColorUtil
             (byte)(color.R * factor),
             (byte)(color.G * factor),
             (byte)(color.B * factor));
-        var brush = new SolidColorBrush(shaded);
+        return From(shaded);
+    }
+
+    public static Color Mix(Color a, Color b, double amount)
+    {
+        amount = Math.Clamp(amount, 0, 1);
+        return Color.FromRgb(
+            (byte)(a.R + (b.R - a.R) * amount),
+            (byte)(a.G + (b.G - a.G) * amount),
+            (byte)(a.B + (b.B - a.B) * amount));
+    }
+
+    public static Color Shift(Color color, double amount)
+    {
+        amount = Math.Clamp(amount, -1, 1);
+        return amount >= 0 ? Mix(color, Colors.White, amount) : Mix(color, Colors.Black, -amount);
+    }
+
+    public static SolidColorBrush ShiftBrush(string? hex, double amount, string fallback = "#F6F0E4")
+    {
+        if (!TryParse(hex, out var color) && !TryParse(fallback, out color))
+            color = Color.FromRgb(0xF6, 0xF0, 0xE4);
+        return From(Shift(color, amount));
+    }
+
+    public static SolidColorBrush From(Color color)
+    {
+        var brush = new SolidColorBrush(color);
         brush.Freeze();
         return brush;
     }

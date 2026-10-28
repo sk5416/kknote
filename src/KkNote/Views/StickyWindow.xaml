@@ -4,15 +4,15 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:views="clr-namespace:KkNote.Views"
         Title="便签"
-        Width="280"
-        Height="340"
-        MinWidth="220"
-        MinHeight="180"
+        Width="320"
+        Height="380"
+        MinWidth="240"
+        MinHeight="210"
         WindowStyle="None"
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         Topmost="{Binding AlwaysOnTop}"
-        Background="#152033"
+        Background="#EFE6D4"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display"
@@ -26,23 +26,24 @@
                         UseAeroCaptionButtons="False"/>
   </shell:WindowChrome.WindowChrome>
 
-  <Border x:Name="Root" BorderThickness="1" Background="#152033" BorderBrush="#34506A">
+  <Border x:Name="Root" BorderThickness="1" Background="#EFE6D4" BorderBrush="#D9CDBB">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="40"/>
         <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
 
-      <Grid x:Name="Header" Grid.Row="0" Background="#10192A">
+      <Grid x:Name="Header" Grid.Row="0" Background="#F6F0E4">
         <TextBox x:Name="TitleBox"
                  Style="{StaticResource TitleInput}"
-                 Margin="10,0,150,0"
+                 Margin="12,0,148,0"
                  VerticalAlignment="Center"
+                 Foreground="#2A3340"
                  AutomationProperties.AutomationId="StickyTitle"
                  AutomationProperties.Name="便签标题"
                  Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
                  shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
           <ToggleButton x:Name="PinButton"
                         IsChecked="{Binding AlwaysOnTop}"
                         AutomationProperties.AutomationId="ToggleTopmost"
@@ -50,10 +51,10 @@
                         ToolTip="是否保持在最前"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <ToggleButton.Style>
-              <Style TargetType="ToggleButton" BasedOn="{StaticResource CheckToggle}">
-                <Setter Property="Padding" Value="8,2"/>
+              <Style TargetType="ToggleButton" BasedOn="{StaticResource PaperToggle}">
                 <Setter Property="Height" Value="26"/>
                 <Setter Property="MinWidth" Value="52"/>
+                <Setter Property="Padding" Value="8,2"/>
                 <Setter Property="Content" Value="置顶"/>
                 <Style.Triggers>
                   <Trigger Property="IsChecked" Value="True">
@@ -63,7 +64,7 @@
               </Style>
             </ToggleButton.Style>
           </ToggleButton>
-          <Button Content="×" Style="{StaticResource IconButton}" Margin="6,0,0,0"
+          <Button x:Name="CloseButton" Content="×" Style="{StaticResource PaperIconButton}" Margin="6,0,0,0"
                   AutomationProperties.AutomationId="UnpinNote"
                   AutomationProperties.Name="取消固化"
                   ToolTip="从桌面移除，内容仍留在面板"

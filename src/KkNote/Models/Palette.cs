@@ -4,25 +4,25 @@ public sealed record PaletteEntry(string Name, string Background, string FontCol
 
 public static class Palette
 {
-    public const string DefaultBackground = "#152033";
-    public const string DefaultFont = "#E7EEF9";
+    public const string DefaultBackground = "#F6F0E4";
+    public const string DefaultFont = "#2A3340";
 
     public static IReadOnlyList<PaletteEntry> Backgrounds { get; } =
     [
+        new("浅纸", "#F6F0E4", "#2A3340"),
+        new("暖白", "#FFF9F1", "#2A3340"),
+        new("雾青", "#E7F1EE", "#1E3A34"),
+        new("粉笺", "#F8ECE8", "#3A2A28"),
         new("深空蓝", "#152033", "#E7EEF9"),
-        new("墨青", "#102824", "#D7F6EF"),
-        new("暖砂", "#2A241C", "#F6E7C1"),
-        new("夜紫", "#22182E", "#F0E4FF"),
-        new("浅纸", "#F4F0E6", "#1C2430"),
     ];
 
     public static IReadOnlyList<string> FontColors { get; } =
     [
-        "#E7EEF9",
+        "#2A3340",
         "#1C2430",
-        "#3DDCFF",
-        "#F5D76E",
-        "#FF8FA3",
-        "#B8F2C8",
+        "#3A6B8C",
+        "#B4532A",
+        "#C45C6A",
+        "#E7EEF9",
     ];
 }

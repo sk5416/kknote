@@ -5,45 +5,76 @@
              SnapsToDevicePixels="True">
   <Grid>
     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
-      <RowDefinition Height="36"/>
+      <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
-    <Grid Grid.Row="0" MinHeight="96">
-      <TextBox x:Name="Body"
-               Style="{StaticResource NoteBody}"
-               AutomationProperties.AutomationId="NoteBody"
-               AutomationProperties.Name="正文"
-               TextChanged="Body_TextChanged"
-               Language="zh-CN"/>
-      <TextBlock x:Name="Placeholder"
-                 Text="写点什么…"
-                 Margin="14,10,12,0"
-                 VerticalAlignment="Top"
-                 IsHitTestVisible="False"
-                 Foreground="{StaticResource MutedBrush}"/>
+    <ScrollViewer x:Name="SpreadStrip"
+                  Grid.Row="0"
+                  Margin="8,8,8,0"
+                  Visibility="Collapsed"
+                  HorizontalScrollBarVisibility="Hidden"
+                  VerticalScrollBarVisibility="Disabled"
+                  Height="40">
+      <StackPanel x:Name="SpreadTabs" Orientation="Horizontal"/>
+    </ScrollViewer>
+
+    <Grid x:Name="Deck" Grid.Row="1" Margin="8,8,8,4" ClipToBounds="False" MinHeight="96">
+      <Grid x:Name="PeekLayer"/>
+      <Border x:Name="FrontPaper"
+              CornerRadius="8"
+              BorderThickness="1"
+              BorderBrush="#E2D6C4"
+              Background="#F6F0E4"
+              Margin="0,0,26,22">
+        <Border.Effect>
+          <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="250" Opacity="0.16" Color="#6B5A40"/>
+        </Border.Effect>
+        <Grid>
+          <TextBox x:Name="Body"
+                   Style="{StaticResource NoteBody}"
+                   AutomationProperties.AutomationId="NoteBody"
+                   AutomationProperties.Name="正文"
+                   TextChanged="Body_TextChanged"
+                   Language="zh-CN"/>
+          <TextBlock x:Name="Placeholder"
+                     Text="写点什么…"
+                     Margin="16,12,12,0"
+                     VerticalAlignment="Top"
+                     IsHitTestVisible="False"
+                     Foreground="#9A8F80"/>
+          <TextBlock x:Name="PageBadge"
+                     HorizontalAlignment="Left"
+                     VerticalAlignment="Bottom"
+                     Margin="12,0,0,8"
+                     FontSize="11"
+                     Foreground="#9A8F80"
+                     IsHitTestVisible="False"/>
+        </Grid>
+      </Border>
     </Grid>
 
-    <Grid Grid.Row="1" Margin="8,0,8,6">
-      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-        <Button x:Name="PrevButton" Content="‹" Style="{StaticResource IconButton}" Margin="0,0,4,0"
-                AutomationProperties.AutomationId="PrevPage" AutomationProperties.Name="上一页"
-                ToolTip="上一页" Click="Prev_Click"/>
-        <TextBlock x:Name="PageLabel" Text="1/1" Width="42" VerticalAlignment="Center"
-                   HorizontalAlignment="Center" TextAlignment="Center"
-                   Foreground="{StaticResource MutedBrush}" FontSize="12"/>
-        <Button x:Name="NextButton" Content="›" Style="{StaticResource IconButton}" Margin="4,0,0,0"
-                AutomationProperties.AutomationId="NextPage" AutomationProperties.Name="下一页"
-                ToolTip="下一页" Click="Next_Click"/>
-      </StackPanel>
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-        <Button x:Name="AddButton" Content="加页" Style="{StaticResource GhostButton}" Padding="8,2" Height="28" Margin="0,0,6,0"
+    <DockPanel Grid.Row="2" Margin="8,0,8,8">
+      <ToggleButton x:Name="SpreadToggle"
+                    DockPanel.Dock="Left"
+                    Style="{StaticResource PaperToggle}"
+                    Content="单独列示"
+                    Height="28"
+                    Padding="10,2"
+                    AutomationProperties.AutomationId="SpreadPages"
+                    AutomationProperties.Name="单独列示"
+                    ToolTip="勾选后每一页单独排开，取消则叠成一沓纸"
+                    Checked="SpreadToggle_Changed"
+                    Unchecked="SpreadToggle_Changed"/>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button x:Name="AddButton" Content="加页" Style="{StaticResource PaperButton}" Height="28" Margin="0,0,6,0"
                 AutomationProperties.AutomationId="AddPage" AutomationProperties.Name="加页"
                 Click="Add_Click"/>
-        <Button x:Name="RemoveButton" Content="减页" Style="{StaticResource GhostButton}" Padding="8,2" Height="28"
+        <Button x:Name="RemoveButton" Content="减页" Style="{StaticResource PaperButton}" Height="28"
                 AutomationProperties.AutomationId="RemovePage" AutomationProperties.Name="减页"
                 Click="Remove_Click"/>
       </StackPanel>
-    </Grid>
+    </DockPanel>
   </Grid>
 </UserControl>

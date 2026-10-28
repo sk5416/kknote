@@ -107,8 +107,11 @@ public sealed class NoteStore : IDisposable
     public void Delete(Note note) => Notes.Remove(note);
 
     public event Action<Note>? ActivateRequested;
+    public event Action? OpenPanelRequested;
 
     public void RequestActivate(Note note) => ActivateRequested?.Invoke(note);
+
+    public void RequestOpenPanel() => OpenPanelRequested?.Invoke();
 
     public IReadOnlyList<Note> DesktopPages()
         => Notes.Where(item => item.PinnedToDesktop).ToList();

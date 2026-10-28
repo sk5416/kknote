@@ -219,6 +219,7 @@ public partial class PaperStackWindow : Window
         SpreadToggle.IsChecked = false;
         _internal = false;
         Title = note.DisplayTitle;
+        StyleBar.Note = note;
         ApplyChrome();
         RebuildPeeks();
     }
@@ -336,13 +337,20 @@ public partial class PaperStackWindow : Window
         _internal = false;
     }
 
+    private void SetMenuTopmost(bool value)
+    {
+        _internal = true;
+        PinButton.IsChecked = value;
+        _internal = false;
+        Topmost = value;
+        _store.Settings.StackAlwaysOnTop = value;
+    }
+
     private void PinButton_Changed(object sender, RoutedEventArgs e)
     {
         if (_internal)
             return;
-        var value = PinButton.IsChecked == true;
-        Topmost = value;
-        _store.Settings.StackAlwaysOnTop = value;
+        SetMenuTopmost(PinButton.IsChecked == true);
     }
 
     private void SpreadToggle_Changed(object sender, RoutedEventArgs e)
@@ -361,14 +369,14 @@ public partial class PaperStackWindow : Window
     private void PageMenu_Opened(object sender, RoutedEventArgs e)
     {
         if (sender is ContextMenu menu)
-            PageListMenu.Fill(menu, _store, _current);
+            PageListMenu.Fill(menu, _store, _current, Topmost, SetMenuTopmost);
     }
 
     private void Window_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (FindParent<TextBox>(e.OriginalSource as DependencyObject) != null)
             return;
-        PageListMenu.Fill(PageMenu, _store, _current);
+        PageListMenu.Fill(PageMenu, _store, _current, Topmost, SetMenuTopmost);
         PageMenu.Placement = PlacementMode.MousePoint;
         PageMenu.IsOpen = true;
         e.Handled = true;

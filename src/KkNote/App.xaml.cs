@@ -65,6 +65,7 @@ public partial class App : Application
 
         _store.Notes.CollectionChanged += OnNotesChanged;
         _store.ActivateRequested += ShowPage;
+        _store.OpenPanelRequested += ShowPanel;
         foreach (var note in _store.Notes.ToList())
             Attach(note);
         RebuildDesktop();

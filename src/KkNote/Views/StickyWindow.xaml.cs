@@ -33,6 +33,7 @@ public partial class StickyWindow : Window
         SpreadToggle.IsChecked = true;
         _internal = false;
         note.PropertyChanged += OnNoteProperty;
+        StyleBar.Note = note;
         ApplyChrome();
     }
 
@@ -141,6 +142,8 @@ public partial class StickyWindow : Window
             WindowEffects.ApplyRounded(this, dark: !light);
     }
 
+    private void SetMenuTopmost(bool value) => _note.AlwaysOnTop = value;
+
     private void Unpin_Click(object sender, RoutedEventArgs e)
     {
         _note.PinnedToDesktop = false;
@@ -156,14 +159,14 @@ public partial class StickyWindow : Window
     private void PageMenu_Opened(object sender, RoutedEventArgs e)
     {
         if (sender is ContextMenu menu)
-            PageListMenu.Fill(menu, _store, _note);
+            PageListMenu.Fill(menu, _store, _note, _note.AlwaysOnTop, SetMenuTopmost);
     }
 
     private void Window_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (FindParent<TextBox>(e.OriginalSource as DependencyObject) != null)
             return;
-        PageListMenu.Fill(PageMenu, _store, _note);
+        PageListMenu.Fill(PageMenu, _store, _note, _note.AlwaysOnTop, SetMenuTopmost);
         PageMenu.Placement = PlacementMode.MousePoint;
         PageMenu.IsOpen = true;
         e.Handled = true;

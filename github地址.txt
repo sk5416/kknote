@@ -1,0 +1,2 @@
+git@github.com:sk5416/kknote.git
+https://github.com/sk5416/kknote.git

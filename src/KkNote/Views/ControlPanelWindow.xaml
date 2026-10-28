@@ -1,0 +1,195 @@
+<Window x:Class="KkNote.Views.ControlPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:views="clr-namespace:KkNote.Views"
+        Title="超级桌面便签"
+        Width="420"
+        Height="620"
+        MinWidth="380"
+        MinHeight="540"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        AutomationProperties.AutomationId="ControlPanel">
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="42"
+                        ResizeBorderThickness="6"
+                        GlassFrameThickness="0"
+                        CornerRadius="0"
+                        UseAeroCaptionButtons="False"/>
+  </shell:WindowChrome.WindowChrome>
+
+  <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="2"/>
+        <RowDefinition Height="40"/>
+        <RowDefinition Height="48"/>
+        <RowDefinition Height="168"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Background="{StaticResource AccentLineBrush}"/>
+
+      <Grid Grid.Row="1" Margin="14,0,8,0">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="超级桌面便签" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+          <TextBlock Text="Ctrl+Alt+N" Margin="10,0,0,0" Foreground="{StaticResource MutedBrush}"
+                     FontSize="11" VerticalAlignment="Center"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Button Content="—" Style="{StaticResource IconButton}" Margin="0,0,6,0"
+                  ToolTip="隐藏到托盘" AutomationProperties.Name="隐藏面板"
+                  shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                  Click="Hide_Click"/>
+          <Button Content="×" Style="{StaticResource IconButton}"
+                  ToolTip="隐藏到托盘，程序仍在运行" AutomationProperties.Name="关闭面板"
+                  shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                  Click="Hide_Click"/>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="2" Margin="12,0">
+        <Button Content="新建" Style="{StaticResource GhostButton}" HorizontalAlignment="Left"
+                Padding="14,6" AutomationProperties.AutomationId="NewNote" AutomationProperties.Name="新建"
+                ToolTip="Ctrl+N" Click="New_Click"/>
+        <TextBlock Text="内容只保存在本机" HorizontalAlignment="Right" VerticalAlignment="Center"
+                   Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+      </Grid>
+
+      <Grid Grid.Row="3" Margin="12,0,12,8">
+        <ListBox x:Name="NoteList"
+                 AutomationProperties.AutomationId="NoteList"
+                 SelectionChanged="NoteList_SelectionChanged">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="10" Height="10" CornerRadius="5" Margin="0,2,8,0" VerticalAlignment="Top"
+                        Background="{Binding Background, Converter={StaticResource HexBrush}}"/>
+                <StackPanel Grid.Column="1">
+                  <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                  <TextBlock Margin="0,2,0,0" Foreground="{StaticResource MutedBrush}" FontSize="11">
+                    <Run Text="{Binding PageCount, Mode=OneWay}"/>
+                    <Run Text=" 页"/>
+                  </TextBlock>
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="桌面" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                      <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding PinnedToDesktop}" Value="True">
+                          <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Text="还没有便签。点击「新建」开始。"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Foreground="{StaticResource MutedBrush}" IsHitTestVisible="False">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Items.Count, ElementName=NoteList}" Value="0">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+      </Grid>
+
+      <Grid Grid.Row="4" Margin="12,0,12,12">
+        <TextBlock x:Name="EmptyHint" Text="选择一张便签，或新建一张。"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Foreground="{StaticResource MutedBrush}"/>
+        <Grid x:Name="Editor" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+
+          <TextBox x:Name="TitleBox" Grid.Row="0" Style="{StaticResource FieldTextBox}" MaxLength="80"
+                   AutomationProperties.AutomationId="NoteTitle" AutomationProperties.Name="标题"
+                   Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"/>
+
+          <StackPanel Grid.Row="1" Margin="0,8,0,0">
+            <TextBlock Text="便签底色" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="2,0,0,6"/>
+            <StackPanel x:Name="BgSwatches" Orientation="Horizontal"/>
+          </StackPanel>
+
+          <Grid Grid.Row="2" Margin="0,8,0,8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="76"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="FontBox" Style="{StaticResource DarkCombo}"
+                      ItemsSource="{x:Static views:FontCatalog.Families}"
+                      SelectedItem="{Binding FontFamily, UpdateSourceTrigger=PropertyChanged}"
+                      AutomationProperties.Name="字体"/>
+            <ComboBox Grid.Column="1" Margin="6,0,0,0" Style="{StaticResource DarkCombo}"
+                      ItemsSource="{x:Static views:FontCatalog.Sizes}"
+                      SelectedItem="{Binding FontSize, UpdateSourceTrigger=PropertyChanged}"
+                      AutomationProperties.Name="字号"/>
+            <ToggleButton Grid.Column="2" Margin="6,0,0,0" Content="B" FontWeight="Bold" Width="32"
+                          Style="{StaticResource CheckToggle}" Padding="0"
+                          IsChecked="{Binding Bold}"
+                          AutomationProperties.AutomationId="BoldToggle" AutomationProperties.Name="加粗"
+                          ToolTip="加粗"/>
+          </Grid>
+
+          <Border Grid.Row="3" CornerRadius="8" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                  Background="{Binding Background, Converter={StaticResource HexBrush}}">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,8,10,0">
+                <TextBlock Text="字色" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"
+                           Foreground="{Binding FontColor, Converter={StaticResource HexBrush}}"/>
+                <StackPanel x:Name="FgSwatches" Orientation="Horizontal"/>
+              </StackPanel>
+              <views:NotePagesView Note="{Binding}"/>
+            </DockPanel>
+          </Border>
+
+          <Grid Grid.Row="4" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal">
+              <ToggleButton Content="显示在桌面" Style="{StaticResource CheckToggle}" Margin="0,0,8,0"
+                            IsChecked="{Binding PinnedToDesktop}"
+                            AutomationProperties.AutomationId="PinDesktop" AutomationProperties.Name="显示在桌面"/>
+              <ToggleButton Content="保持最前" Style="{StaticResource CheckToggle}"
+                            IsChecked="{Binding AlwaysOnTop}"
+                            AutomationProperties.AutomationId="KeepOnTop" AutomationProperties.Name="保持最前"/>
+            </StackPanel>
+            <Button x:Name="DeleteButton" Content="删除" Style="{StaticResource DangerButton}"
+                    HorizontalAlignment="Right"
+                    AutomationProperties.AutomationId="DeleteNote" AutomationProperties.Name="删除"
+                    Click="Delete_Click"/>
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

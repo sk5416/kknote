@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F34F33DD-5536-44B4-BFA2-5886D599D1F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KkNote", "src\KkNote\KkNote.csproj", "{CA5EBA03-FEF5-4C9D-9B8D-3029715F43EB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F55D031C-3319-4282-A5AB-E6F02753F488}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KkNote.Tests", "tests\KkNote.Tests\KkNote.Tests.csproj", "{ECB36E72-2237-416C-9E7F-D5BC14CAD8F6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CA5EBA03-FEF5-4C9D-9B8D-3029715F43EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA5EBA03-FEF5-4C9D-9B8D-3029715F43EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA5EBA03-FEF5-4C9D-9B8D-3029715F43EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA5EBA03-FEF5-4C9D-9B8D-3029715F43EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECB36E72-2237-416C-9E7F-D5BC14CAD8F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECB36E72-2237-416C-9E7F-D5BC14CAD8F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECB36E72-2237-416C-9E7F-D5BC14CAD8F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECB36E72-2237-416C-9E7F-D5BC14CAD8F6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CA5EBA03-FEF5-4C9D-9B8D-3029715F43EB} = {F34F33DD-5536-44B4-BFA2-5886D599D1F0}
+		{ECB36E72-2237-416C-9E7F-D5BC14CAD8F6} = {F55D031C-3319-4282-A5AB-E6F02753F488}
+	EndGlobalSection
+EndGlobal

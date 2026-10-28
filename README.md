@@ -1,0 +1,107 @@
+# 超级桌面便签
+
+单机 Windows 桌面便签。程序常驻托盘，用一块不大的控制面板管理便签，再把需要的便签固化到桌面上。没有账号、没有同步、没有遥测。
+
+当前版本：**v0.1.0**
+
+## 功能
+
+- 托盘图标双击打开控制面板。右键可以打开面板、隐藏或显示全部桌面便签、退出。
+- 全局热键 `Ctrl+Alt+N` 切换控制面板。热键被占用时，托盘会提示一次，双击图标仍然可用。
+- 关闭面板只是隐藏到托盘，退出菜单才会结束进程。再次启动已在运行的程序时，会把面板唤到前面。
+- 控制面板里可以新建、修改、删除便签。
+- 每张便签可以选择是否显示在桌面。桌面便签不进任务栏。
+- 桌面便签支持多页，可以翻页、加页、减页。最后一页不能删掉。
+- 桌面便签顶栏的「置顶 / 已置顶」决定它是否保持在其他窗口前面。控制面板里的「保持最前」是同一个开关。
+- 关掉桌面便签只会取消固化，内容还在面板里。
+- 字体、字号（12–28）、字色、加粗、便签底色按整张便签生效。底色有深空蓝、墨青、暖砂、夜紫、浅纸。选底色时会配一个默认识字色，之后仍可改字色。
+- 正文可以在面板里改，也可以直接在桌面便签上改。两边看的是同一份内容。
+- 位置、大小、页数、样式和是否固化都会记住。下次启动按上次的状态恢复。
+- 「隐藏桌面便签」只在本次运行里把窗口藏起来，不清除固化标记。重启后仍会显示。
+
+## 数据放在哪
+
+默认文件：
+
+`%LocalAppData%\KkNote\notes.json`
+
+文件损坏时，原文件会复制为 `notes.json.bak`，程序用空数据继续启动，避免打不开。
+
+开发时可以用 `--data 路径` 指定另一个文件，避免碰到日常数据。
+
+## 怎么运行
+
+需要 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) 或 .NET 8 Desktop Runtime。
+
+```powershell
+dotnet run --project src\KkNote\KkNote.csproj
+```
+
+或：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run.ps1
+```
+
+直接双击 `KkNote.exe` 时，本机需要安装 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)。如果运行时装在用户目录而不是 `Program Files`，先设置 `DOTNET_ROOT`，或用上面的 `dotnet run`。
+
+测试：
+
+```powershell
+dotnet test
+```
+
+发布成单个 exe，目标机器仍需安装 .NET 8 Desktop Runtime：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\publish-framework.ps1
+```
+
+不依赖本机 .NET 的包体积更大，只在需要时使用：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\publish-selfcontained.ps1
+```
+
+## 技术选型
+
+.NET 8 WPF，单进程，没有 WebView、数据库和第三方 UI 库。托盘使用系统 `NotifyIcon`，热键使用 `RegisterHotKey`，数据是一份 JSON。只有固化到桌面的便签才会创建窗口。
+
+## 迭代记录
+
+### v0.1.0
+
+第一版可用的单机便签。
+
+- 托盘、热键、单实例唤起
+- 控制面板的新增、修改、删除
+- 桌面固化、多页、置顶、拖动和缩放
+- 整张便签的字体、字号、字色、加粗、底色
+- 本地 JSON 保存，损坏文件自动备份
+
+资源占用见下方「实测」。字体列表是一份常用中英文字体，不会在启动时扫描本机全部字体。
+
+### 实测
+
+2026-10-28，本机 Release，面板关闭、3 张桌面便签：
+
+- 工作集约 230MB，私有内存约 154MB
+- 空闲 2 秒 CPU 时间增量 0ms
+- 第二个进程会退出，并把已有实例的面板唤到前面
+- 重启后 3 张便签、置顶状态和页数都读了回来
+
+WPF 单进程的底盘比 80MB 目标更高，数字按实测写。CPU 空闲符合预期。
+
+## 路线图
+
+这些不在 v0.1 里：
+
+- 开机自启、热键自定义
+- 同一页里混排多种字体样式
+- 搜索、导入导出、提醒、点击穿透
+- 安装包
+- 多语言、云同步、账号
+
+## 仓库
+
+https://github.com/sk5416/kknote

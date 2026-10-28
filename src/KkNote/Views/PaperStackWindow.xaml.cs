@@ -1,0 +1,380 @@
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
+using KkNote.Converters;
+using KkNote.Models;
+using KkNote.Services;
+
+namespace KkNote.Views;
+
+public partial class PaperStackWindow : Window
+{
+    private readonly NoteStore _store;
+    private readonly List<Note> _hooked = [];
+    private Note? _current;
+    private bool _ready;
+    private bool _closing;
+    private bool _internal;
+
+    public PaperStackWindow(NoteStore store)
+    {
+        _store = store;
+        InitializeComponent();
+        Width = Math.Max(store.Settings.StackWidth, MinWidth);
+        Height = Math.Max(store.Settings.StackHeight, MinHeight);
+        Left = store.Settings.StackX;
+        Top = store.Settings.StackY;
+        Topmost = store.Settings.StackAlwaysOnTop;
+        _internal = true;
+        PinButton.IsChecked = store.Settings.StackAlwaysOnTop;
+        SpreadToggle.IsChecked = store.Settings.SpreadPages;
+        _internal = false;
+        store.Notes.CollectionChanged += OnNotesChanged;
+        foreach (var note in store.Notes)
+            Hook(note);
+        SelectCurrent(FindInitial());
+    }
+
+    public bool SuppressUnpin { get; set; }
+
+    public void RequestClose()
+    {
+        if (_closing)
+            return;
+        Close();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        WindowEffects.MakeToolWindow(this);
+        WindowEffects.ApplyRounded(this, dark: _current != null && !ColorUtil.IsLight(_current.Background));
+    }
+
+    protected override void OnContentRendered(EventArgs e)
+    {
+        base.OnContentRendered(e);
+        if (_ready)
+            return;
+        if (!WindowEffects.IsOnScreen(Left, Top, Width, Height))
+        {
+            Left = SystemParameters.WorkArea.Left + 80;
+            Top = SystemParameters.WorkArea.Top + 80;
+        }
+
+        _ready = true;
+        SaveBounds();
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_closing)
+            return;
+        _closing = true;
+        _store.Notes.CollectionChanged -= OnNotesChanged;
+        foreach (var note in _hooked.ToList())
+            Unhook(note);
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (WindowState != WindowState.Normal)
+            WindowState = WindowState.Normal;
+    }
+
+    protected override void OnLocationChanged(EventArgs e)
+    {
+        base.OnLocationChanged(e);
+        if (_ready)
+            SaveBounds();
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        base.OnRenderSizeChanged(sizeInfo);
+        if (_ready)
+            SaveBounds();
+    }
+
+    private List<Note> Pinned => _store.Notes.Where(item => item.PinnedToDesktop).ToList();
+
+    private Note? FindInitial()
+    {
+        var pinned = Pinned;
+        if (pinned.Count == 0)
+            return null;
+        return pinned.FirstOrDefault(item => item.Id == _store.Settings.StackCurrentId) ?? pinned[0];
+    }
+
+    private void OnNotesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+        {
+            foreach (Note note in e.NewItems)
+                Hook(note);
+        }
+
+        if (e.OldItems != null)
+        {
+            foreach (Note note in e.OldItems)
+                Unhook(note);
+        }
+
+        RefreshPinned();
+    }
+
+    private void Hook(Note note)
+    {
+        if (_hooked.Contains(note))
+            return;
+        _hooked.Add(note);
+        note.PropertyChanged += OnNoteProperty;
+    }
+
+    private void Unhook(Note note)
+    {
+        if (!_hooked.Remove(note))
+            return;
+        note.PropertyChanged -= OnNoteProperty;
+    }
+
+    private void OnNoteProperty(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not Note note)
+            return;
+        if (e.PropertyName == nameof(Note.PinnedToDesktop))
+        {
+            RefreshPinned();
+            return;
+        }
+
+        if (!ReferenceEquals(note, _current))
+            return;
+        if (e.PropertyName == nameof(Note.Title) && !_internal)
+        {
+            if (TitleBox.Text != note.Title)
+                TitleBox.Text = note.Title;
+            Title = string.IsNullOrWhiteSpace(note.Title) ? "便签" : note.Title;
+        }
+        else if (e.PropertyName == nameof(Note.Text) && !_internal && !Body.IsKeyboardFocused)
+        {
+            if (Body.Text != note.Text)
+                Body.Text = note.Text;
+            Placeholder.Visibility = string.IsNullOrEmpty(note.Text) ? Visibility.Visible : Visibility.Collapsed;
+        }
+        else if (e.PropertyName is nameof(Note.Background) or nameof(Note.FontColor)
+                 or nameof(Note.FontFamily) or nameof(Note.FontSize) or nameof(Note.Bold))
+        {
+            ApplyChrome();
+        }
+    }
+
+    private void RefreshPinned()
+    {
+        var pinned = Pinned;
+        if (pinned.Count == 0)
+        {
+            if (!_closing)
+            {
+                SuppressUnpin = true;
+                RequestClose();
+            }
+            return;
+        }
+
+        if (_current == null || !_current.PinnedToDesktop)
+            SelectCurrent(pinned[0]);
+        else
+        {
+            ApplyChrome();
+            RebuildPeeks();
+        }
+    }
+
+    private void SelectCurrent(Note? note)
+    {
+        _current = note;
+        if (note == null)
+            return;
+        _store.Settings.StackCurrentId = note.Id;
+        _internal = true;
+        TitleBox.Text = note.Title;
+        Body.Text = note.Text;
+        Placeholder.Visibility = string.IsNullOrEmpty(note.Text) ? Visibility.Visible : Visibility.Collapsed;
+        _internal = false;
+        Title = string.IsNullOrWhiteSpace(note.Title) ? "便签" : note.Title;
+        ApplyChrome();
+        RebuildPeeks();
+    }
+
+    private void ApplyChrome()
+    {
+        if (_current == null)
+            return;
+        var light = ColorUtil.IsLight(_current.Background);
+        var paper = ColorUtil.Brush(_current.Background, Palette.DefaultBackground);
+        var desk = ColorUtil.ShiftBrush(_current.Background, light ? -0.06 : 0.08);
+        Root.Background = desk;
+        Header.Background = paper;
+        FrontPaper.Background = paper;
+        Root.BorderBrush = light ? ColorUtil.Brush("#D9CDBB") : ColorUtil.Brush("#34506A");
+        FrontPaper.BorderBrush = light ? ColorUtil.Brush("#E2D6C4") : ColorUtil.Brush("#34506A");
+        var ink = ColorUtil.Brush(_current.FontColor, Palette.DefaultFont);
+        TitleBox.Foreground = ink;
+        TitleBox.CaretBrush = ink;
+        Body.Foreground = ink;
+        Body.CaretBrush = ink;
+        Body.FontFamily = new FontFamily(FontCatalog.Normalize(_current.FontFamily));
+        Body.FontSize = _current.FontSize;
+        Body.FontWeight = _current.Bold ? FontWeights.Bold : FontWeights.Normal;
+        var muted = light ? ColorUtil.Brush("#9A8F80") : ColorUtil.Brush("#8EA0BE");
+        Placeholder.Foreground = muted;
+        PageBadge.Foreground = muted;
+        var buttonInk = light ? ColorUtil.Brush("#3A3228") : ColorUtil.Brush("#E7EEF9");
+        PinButton.Foreground = buttonInk;
+        CloseButton.Foreground = buttonInk;
+        SpreadToggle.Foreground = buttonInk;
+        if (IsLoaded)
+            WindowEffects.ApplyRounded(this, dark: !light);
+    }
+
+    private void RebuildPeeks()
+    {
+        PeekLayer.Children.Clear();
+        var pinned = Pinned;
+        var count = pinned.Count;
+        PageBadge.Text = count <= 1 ? "" : $"{pinned.IndexOf(_current!) + 1} / {count}";
+        var stacked = count > 1;
+        FrontPaper.Margin = stacked ? new Thickness(0, 0, 28, 24) : new Thickness(2, 2, 6, 6);
+        if (!stacked || _current == null)
+            return;
+        var index = Math.Max(0, pinned.IndexOf(_current));
+        var behind = Math.Min(count - 1, 3);
+        double[] angles = [4, 8, 12];
+        double[] shift = [8, 14, 20];
+        for (var i = behind; i >= 1; i--)
+        {
+            var page = pinned[(index + i) % count];
+            var depth = behind - i;
+            PeekLayer.Children.Add(CreatePeek(page, angles[Math.Min(depth, 2)], shift[Math.Min(depth, 2)], depth));
+        }
+    }
+
+    private Border CreatePeek(Note note, double angle, double offset, int depth)
+    {
+        var light = ColorUtil.IsLight(note.Background);
+        var amount = light ? -0.06 - depth * 0.05 : 0.08 + depth * 0.05;
+        var border = new Border
+        {
+            Background = ColorUtil.ShiftBrush(note.Background, amount),
+            BorderBrush = light ? ColorUtil.Brush("#D9CDBB") : ColorUtil.Brush("#4A6080"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Cursor = Cursors.Hand,
+            Tag = note,
+            RenderTransformOrigin = new Point(0, 0),
+            RenderTransform = new TransformGroup
+            {
+                Children =
+                {
+                    new RotateTransform(angle),
+                    new TranslateTransform(offset, offset * 0.75),
+                },
+            },
+            Effect = new DropShadowEffect
+            {
+                BlurRadius = 10,
+                ShadowDepth = 1,
+                Direction = 250,
+                Opacity = 0.12,
+                Color = Color.FromRgb(0x6B, 0x5A, 0x40),
+            },
+            Child = new TextBlock
+            {
+                Text = note.DisplayTitle,
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = light ? ColorUtil.Brush("#8A7B68") : ColorUtil.Brush("#8EA0BE"),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 8, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                IsHitTestVisible = false,
+            },
+        };
+        border.MouseLeftButtonDown += (_, e) =>
+        {
+            SelectCurrent(note);
+            e.Handled = true;
+        };
+        AutomationProperties.SetName(border, note.DisplayTitle);
+        return border;
+    }
+
+    private void TitleBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_internal || _current == null)
+            return;
+        _internal = true;
+        _current.Title = TitleBox.Text;
+        _internal = false;
+        Title = string.IsNullOrWhiteSpace(_current.Title) ? "便签" : _current.Title;
+    }
+
+    private void Body_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        Placeholder.Visibility = Body.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (_internal || _current == null)
+            return;
+        _internal = true;
+        _current.Text = Body.Text;
+        _internal = false;
+    }
+
+    private void PinButton_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_internal)
+            return;
+        var value = PinButton.IsChecked == true;
+        Topmost = value;
+        _store.Settings.StackAlwaysOnTop = value;
+    }
+
+    private void SpreadToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_internal)
+            return;
+        _store.Settings.SpreadPages = SpreadToggle.IsChecked == true;
+    }
+
+    private void Add_Click(object sender, RoutedEventArgs e)
+    {
+        var note = _store.AddNew();
+        note.PinnedToDesktop = true;
+        SelectCurrent(note);
+    }
+
+    private void Unpin_Click(object sender, RoutedEventArgs e)
+    {
+        if (_current == null)
+            return;
+        _current.PinnedToDesktop = false;
+    }
+
+    private void SaveBounds()
+    {
+        _store.Settings.StackX = Left;
+        _store.Settings.StackY = Top;
+        if (ActualWidth >= NoteLimits.MinWidth)
+            _store.Settings.StackWidth = ActualWidth;
+        if (ActualHeight >= NoteLimits.MinHeight)
+            _store.Settings.StackHeight = ActualHeight;
+    }
+}

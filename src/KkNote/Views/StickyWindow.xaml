@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        xmlns:views="clr-namespace:KkNote.Views"
         Title="便签"
         Width="320"
         Height="380"
@@ -73,7 +72,31 @@
         </StackPanel>
       </Grid>
 
-      <views:NotePagesView x:Name="Pages" Grid.Row="1" Note="{Binding}"/>
+      <Grid Grid.Row="1" Margin="10,4,10,10">
+        <Border x:Name="Paper" CornerRadius="8" BorderThickness="1" BorderBrush="#E2D6C4" Background="#F6F0E4">
+          <Grid>
+            <TextBox x:Name="Body"
+                     Style="{StaticResource NoteBody}"
+                     AutomationProperties.AutomationId="NoteBody"
+                     AutomationProperties.Name="正文"
+                     Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                     Language="zh-CN"/>
+            <TextBlock Text="写点什么…" Margin="16,12,12,0" VerticalAlignment="Top"
+                       IsHitTestVisible="False" Foreground="#9A8F80">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Text}" Value="">
+                      <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Grid>
+        </Border>
+      </Grid>
     </Grid>
   </Border>
 </Window>

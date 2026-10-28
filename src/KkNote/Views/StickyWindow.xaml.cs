@@ -103,7 +103,8 @@ public partial class StickyWindow : Window
     {
         if (e.PropertyName == nameof(Note.Title))
             Title = string.IsNullOrWhiteSpace(_note.Title) ? "便签" : _note.Title;
-        else if (e.PropertyName is nameof(Note.Background) or nameof(Note.FontColor))
+        else if (e.PropertyName is nameof(Note.Background) or nameof(Note.FontColor)
+                 or nameof(Note.FontFamily) or nameof(Note.FontSize) or nameof(Note.Bold))
             ApplyChrome();
     }
 
@@ -118,6 +119,13 @@ public partial class StickyWindow : Window
         var ink = ColorUtil.Brush(_note.FontColor, Palette.DefaultFont);
         TitleBox.Foreground = ink;
         TitleBox.CaretBrush = ink;
+        Body.Foreground = ink;
+        Body.CaretBrush = ink;
+        Body.FontFamily = new FontFamily(FontCatalog.Normalize(_note.FontFamily));
+        Body.FontSize = _note.FontSize;
+        Body.FontWeight = _note.Bold ? FontWeights.Bold : FontWeights.Normal;
+        Paper.Background = paper;
+        Paper.BorderBrush = light ? ColorUtil.Brush("#E2D6C4") : ColorUtil.Brush("#34506A");
         PinButton.Foreground = light ? ColorUtil.Brush("#3A3228") : ColorUtil.Brush("#E7EEF9");
         CloseButton.Foreground = PinButton.Foreground;
         if (IsLoaded)

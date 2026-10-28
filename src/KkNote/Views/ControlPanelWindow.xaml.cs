@@ -22,6 +22,12 @@ public partial class ControlPanelWindow : Window
         InitializeComponent();
         NoteList.ItemsSource = store.Notes;
         BuildSwatches();
+        SpreadToggle.IsChecked = store.Settings.SpreadPages;
+        store.Settings.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AppSettings.SpreadPages))
+                SpreadToggle.IsChecked = _store.Settings.SpreadPages;
+        };
         if (store.Notes.Count > 0)
             NoteList.SelectedIndex = 0;
         else
@@ -131,6 +137,7 @@ public partial class ControlPanelWindow : Window
         }
 
         ShowSelection(_selected);
+        ApplyBodyType();
         ResetDeleteConfirm();
         RefreshSwatches();
     }
@@ -139,6 +146,8 @@ public partial class ControlPanelWindow : Window
     {
         if (e.PropertyName is nameof(Note.Background) or nameof(Note.FontColor))
             RefreshSwatches();
+        if (e.PropertyName == nameof(Note.Bold))
+            ApplyBodyType();
     }
 
     private void ShowSelection(Note? note)
@@ -146,6 +155,13 @@ public partial class ControlPanelWindow : Window
         Editor.DataContext = note;
         Editor.Visibility = note == null ? Visibility.Collapsed : Visibility.Visible;
         EmptyHint.Visibility = note == null ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ApplyBodyType()
+    {
+        if (_selected == null)
+            return;
+        BodyBox.FontWeight = _selected.Bold ? FontWeights.Bold : FontWeights.Normal;
     }
 
     private void RefreshSwatches()
@@ -205,6 +221,11 @@ public partial class ControlPanelWindow : Window
         _confirmDelete = false;
         if (DeleteButton != null)
             DeleteButton.Content = "删除";
+    }
+
+    private void SpreadToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        _store.Settings.SpreadPages = SpreadToggle.IsChecked == true;
     }
 
     private void Hide_Click(object sender, RoutedEventArgs e) => Close();

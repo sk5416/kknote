@@ -16,8 +16,10 @@ public partial class App : Application
     private TrayService? _tray;
     private HotkeyService? _hotkey;
     private ControlPanelWindow? _panel;
+    private PaperStackWindow? _stack;
     private bool _desktopHidden;
     private bool _exiting;
+    private bool _rebuilding;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -62,8 +64,10 @@ public partial class App : Application
         _hotkey = new HotkeyService();
 
         _store.Notes.CollectionChanged += OnNotesChanged;
+        _store.Settings.PropertyChanged += OnSettingsChanged;
         foreach (var note in _store.Notes.ToList())
             Attach(note);
+        RebuildDesktop();
 
         _tray.OpenRequested += (_, _) => ShowPanel();
         _tray.ToggleDesktop += (_, _) => ToggleAllDesktop();
@@ -102,12 +106,7 @@ public partial class App : Application
         }
     }
 
-    private void Attach(Note note)
-    {
-        note.PropertyChanged += OnNoteProperty;
-        if (note.PinnedToDesktop)
-            OpenSticky(note);
-    }
+    private void Attach(Note note) => note.PropertyChanged += OnNoteProperty;
 
     private void Detach(Note note)
     {
@@ -117,12 +116,84 @@ public partial class App : Application
 
     private void OnNoteProperty(object? sender, PropertyChangedEventArgs e)
     {
-        if (sender is not Note note || e.PropertyName != nameof(Note.PinnedToDesktop))
+        if (e.PropertyName == nameof(Note.PinnedToDesktop))
+            RebuildDesktop();
+    }
+
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppSettings.SpreadPages))
+            RebuildDesktop();
+    }
+
+    private void RebuildDesktop()
+    {
+        if (_rebuilding || _store == null)
             return;
-        if (note.PinnedToDesktop)
-            OpenSticky(note);
-        else
-            CloseSticky(note);
+        _rebuilding = true;
+        try
+        {
+            var pinned = _store.Notes.Where(item => item.PinnedToDesktop).ToList();
+            if (_desktopHidden)
+            {
+                CloseDesktopWindows(suppressUnpin: true);
+                return;
+            }
+
+            if (_store.Settings.SpreadPages)
+            {
+                CloseStack(suppressUnpin: true);
+                foreach (var id in _stickies.Keys.ToList())
+                {
+                    if (pinned.All(item => item.Id != id))
+                    {
+                        _stickies[id].SuppressUnpin = true;
+                        _stickies[id].RequestClose();
+                    }
+                }
+
+                foreach (var note in pinned)
+                    OpenSticky(note);
+                return;
+            }
+
+            foreach (var window in _stickies.Values.ToList())
+            {
+                window.SuppressUnpin = true;
+                window.RequestClose();
+            }
+
+            if (pinned.Count == 0)
+            {
+                CloseStack(suppressUnpin: true);
+                return;
+            }
+
+            if (_stack == null)
+                OpenStack();
+        }
+        finally
+        {
+            _rebuilding = false;
+        }
+    }
+
+    private void OpenStack()
+    {
+        if (_store == null || _stack != null)
+            return;
+        _stack = new PaperStackWindow(_store);
+        _stack.Closed += (_, _) => _stack = null;
+        _stack.Show();
+    }
+
+    private void CloseStack(bool suppressUnpin)
+    {
+        if (_stack == null)
+            return;
+        _stack.SuppressUnpin = suppressUnpin;
+        _stack.RequestClose();
+        _stack = null;
     }
 
     private void OpenSticky(Note note)
@@ -131,25 +202,40 @@ public partial class App : Application
             return;
         if (_stickies.TryGetValue(note.Id, out var existing))
         {
-            if (!_desktopHidden)
-            {
-                existing.Show();
-                existing.Activate();
-            }
+            existing.Show();
+            existing.Activate();
             return;
         }
 
         var window = new StickyWindow(_store, note);
         window.Closed += (_, _) => _stickies.Remove(note.Id);
         _stickies[note.Id] = window;
-        if (!_desktopHidden)
-            window.Show();
+        window.Show();
     }
 
     private void CloseSticky(Note note)
     {
         if (_stickies.TryGetValue(note.Id, out var window))
+        {
+            window.SuppressUnpin = true;
             window.RequestClose();
+        }
+    }
+
+    private void CloseDesktopWindows(bool suppressUnpin)
+    {
+        foreach (var window in _stickies.Values.ToList())
+        {
+            window.SuppressUnpin = suppressUnpin;
+            window.RequestClose();
+        }
+
+        if (_stack != null)
+        {
+            _stack.SuppressUnpin = suppressUnpin;
+            _stack.RequestClose();
+            _stack = null;
+        }
     }
 
     private void ToggleAllDesktop()
@@ -162,14 +248,11 @@ public partial class App : Application
         {
             foreach (var window in _stickies.Values)
                 window.Hide();
+            _stack?.Hide();
             return;
         }
 
-        foreach (var note in _store.Notes)
-        {
-            if (note.PinnedToDesktop)
-                OpenSticky(note);
-        }
+        RebuildDesktop();
     }
 
     private void ShowPanel()
@@ -201,11 +284,7 @@ public partial class App : Application
         try
         {
             _hotkey?.Dispose();
-            foreach (var window in _stickies.Values.ToList())
-            {
-                window.SuppressUnpin = true;
-                window.RequestClose();
-            }
+            CloseDesktopWindows(suppressUnpin: true);
 
             if (_panel != null)
             {

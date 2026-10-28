@@ -33,8 +33,9 @@ public sealed class NoteStore : IDisposable
         _context = SynchronizationContext.Current;
         Notes = [];
         Notes.CollectionChanged += OnCollectionChanged;
+        Settings.PropertyChanged += OnSettingsProperty;
         _suppress = true;
-        foreach (var note in document.Notes ?? [])
+        foreach (var note in Flatten(document.Notes ?? []))
         {
             Normalize(note);
             Notes.Add(note);
@@ -127,6 +128,7 @@ public sealed class NoteStore : IDisposable
 
     public void Dispose()
     {
+        Settings.PropertyChanged -= OnSettingsProperty;
         lock (_gate)
         {
             _timer?.Dispose();
@@ -160,8 +162,18 @@ public sealed class NoteStore : IDisposable
 
         var document = new NoteDocument
         {
-            Settings = new AppSettings { Hotkey = Settings.Hotkey },
-            Notes = Notes.ToList(),
+            Settings = new AppSettings
+            {
+                Hotkey = Settings.Hotkey,
+                SpreadPages = Settings.SpreadPages,
+                StackCurrentId = Settings.StackCurrentId,
+                StackX = Settings.StackX,
+                StackY = Settings.StackY,
+                StackWidth = Settings.StackWidth,
+                StackHeight = Settings.StackHeight,
+                StackAlwaysOnTop = Settings.StackAlwaysOnTop,
+            },
+            Notes = Notes.Select(CopyForSave).ToList(),
         };
         var json = JsonSerializer.Serialize(document, JsonOptions);
         var temporary = FilePath + ".tmp";
@@ -195,9 +207,6 @@ public sealed class NoteStore : IDisposable
         if (!_watched.Add(note))
             return;
         note.PropertyChanged += OnNoteProperty;
-        note.Pages.CollectionChanged += OnPageCollection;
-        foreach (var page in note.Pages)
-            page.PropertyChanged += OnPageProperty;
     }
 
     private void Unwatch(Note note)
@@ -205,27 +214,6 @@ public sealed class NoteStore : IDisposable
         if (!_watched.Remove(note))
             return;
         note.PropertyChanged -= OnNoteProperty;
-        note.Pages.CollectionChanged -= OnPageCollection;
-        foreach (var page in note.Pages)
-            page.PropertyChanged -= OnPageProperty;
-    }
-
-    private void OnPageCollection(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.NewItems != null)
-        {
-            foreach (NotePage page in e.NewItems)
-                page.PropertyChanged += OnPageProperty;
-        }
-
-        if (e.OldItems != null)
-        {
-            foreach (NotePage page in e.OldItems)
-                page.PropertyChanged -= OnPageProperty;
-        }
-
-        if (!_suppress)
-            ScheduleSave();
     }
 
     private void OnNoteProperty(object? sender, PropertyChangedEventArgs e)
@@ -234,24 +222,82 @@ public sealed class NoteStore : IDisposable
             ScheduleSave();
     }
 
-    private void OnPageProperty(object? sender, PropertyChangedEventArgs e)
+    private void OnSettingsProperty(object? sender, PropertyChangedEventArgs e)
     {
         if (!_suppress)
             ScheduleSave();
     }
 
+    private static List<Note> Flatten(IEnumerable<Note> source)
+    {
+        var result = new List<Note>();
+        foreach (var note in source)
+        {
+            var pages = note.Pages;
+            if (pages is { Count: > 0 })
+            {
+                for (var i = 0; i < pages.Count; i++)
+                {
+                    var item = i == 0 ? note : CloneShell(note, i);
+                    if (string.IsNullOrEmpty(item.Text))
+                        item.Text = pages[i].Text ?? "";
+                    item.Pages = null;
+                    result.Add(item);
+                }
+            }
+            else
+            {
+                note.Pages = null;
+                note.Text ??= "";
+                result.Add(note);
+            }
+        }
+
+        return result;
+    }
+
+    private static Note CloneShell(Note source, int index) => new()
+    {
+        Id = Guid.NewGuid().ToString("N"),
+        Title = string.IsNullOrWhiteSpace(source.Title) ? $"第{index + 1}页" : $"{source.DisplayTitle} · {index + 1}",
+        PinnedToDesktop = source.PinnedToDesktop,
+        AlwaysOnTop = source.AlwaysOnTop,
+        Background = source.Background,
+        FontFamily = source.FontFamily,
+        FontSize = source.FontSize,
+        FontColor = source.FontColor,
+        Bold = source.Bold,
+        X = source.X + index * 24,
+        Y = source.Y + index * 24,
+        Width = source.Width,
+        Height = source.Height,
+    };
+
+    private static Note CopyForSave(Note note) => new()
+    {
+        Id = note.Id,
+        Title = note.Title,
+        Text = note.Text,
+        PinnedToDesktop = note.PinnedToDesktop,
+        AlwaysOnTop = note.AlwaysOnTop,
+        Background = note.Background,
+        FontFamily = note.FontFamily,
+        FontSize = note.FontSize,
+        FontColor = note.FontColor,
+        Bold = note.Bold,
+        X = note.X,
+        Y = note.Y,
+        Width = note.Width,
+        Height = note.Height,
+        Pages = null,
+    };
+
     private static void Normalize(Note note)
     {
         if (string.IsNullOrWhiteSpace(note.Id))
             note.Id = Guid.NewGuid().ToString("N");
-        note.EnsurePage();
-        foreach (var page in note.Pages)
-        {
-            if (string.IsNullOrWhiteSpace(page.Id))
-                page.Id = Guid.NewGuid().ToString("N");
-            page.Text ??= "";
-        }
-
+        note.Text ??= "";
+        note.Pages = null;
         note.FontSize = NoteLimits.SnapFontSize(note.FontSize);
         if (note.Width < NoteLimits.MinWidth)
             note.Width = NoteLimits.DefaultWidth;

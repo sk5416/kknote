@@ -16,13 +16,14 @@ public sealed class NoteStoreTests : IDisposable
     }
 
     [Fact]
-    public void RoundTrip_PreservesNotesAndPlainChinese()
+    public void RoundTrip_PreservesPageTextAndPlainChinese()
     {
         var path = Path.Combine(_directory, "notes.json");
         using (var store = NoteStore.Load(path))
         {
             var note = store.AddNew();
             note.Title = "会议";
+            note.Text = "第一页 ☕";
             note.PinnedToDesktop = true;
             note.AlwaysOnTop = false;
             note.Background = "#102824";
@@ -30,13 +31,11 @@ public sealed class NoteStoreTests : IDisposable
             note.FontSize = 18;
             note.FontColor = "#F5D76E";
             note.Bold = true;
-            note.SpreadPages = true;
             note.X = 10;
             note.Y = 20;
             note.Width = 300;
             note.Height = 400;
-            note.Pages[0].Text = "第一页 ☕";
-            note.Pages.Add(new NotePage { Id = "p2", Text = "第二页" });
+            store.Settings.SpreadPages = true;
             store.SaveNow();
         }
 
@@ -44,10 +43,12 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Contains("第一页 ☕", json);
         Assert.DoesNotContain("\\u", json);
         Assert.Contains("pinnedToDesktop", json);
+        Assert.DoesNotContain("\"pages\"", json);
 
         using var loaded = NoteStore.Load(path);
         var restored = Assert.Single(loaded.Notes);
         Assert.Equal("会议", restored.Title);
+        Assert.Equal("第一页 ☕", restored.Text);
         Assert.True(restored.PinnedToDesktop);
         Assert.False(restored.AlwaysOnTop);
         Assert.Equal("#102824", restored.Background);
@@ -55,14 +56,12 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Equal(18d, restored.FontSize);
         Assert.Equal("#F5D76E", restored.FontColor);
         Assert.True(restored.Bold);
-        Assert.True(restored.SpreadPages);
+        Assert.True(loaded.Settings.SpreadPages);
         Assert.Equal(10d, restored.X);
         Assert.Equal(20d, restored.Y);
         Assert.Equal(300d, restored.Width);
         Assert.Equal(400d, restored.Height);
-        Assert.Equal(2, restored.Pages.Count);
-        Assert.Equal("第一页 ☕", restored.Pages[0].Text);
-        Assert.Equal("第二页", restored.Pages[1].Text);
+        Assert.Null(restored.Pages);
     }
 
     [Fact]
@@ -82,7 +81,42 @@ public sealed class NoteStoreTests : IDisposable
     }
 
     [Fact]
-    public void MissingPagesAndTinyFont_AreRepaired()
+    public void LegacyMultiPageNote_IsFlattenedIntoPages()
+    {
+        var path = Path.Combine(_directory, "notes.json");
+        File.WriteAllText(path, """
+        {
+          "settings": { "hotkey": "Ctrl+Alt+N" },
+          "notes": [
+            {
+              "id": "old1",
+              "title": "周末",
+              "pinnedToDesktop": true,
+              "fontSize": 14,
+              "width": 280,
+              "height": 340,
+              "pages": [
+                { "id": "p1", "text": "买菜" },
+                { "id": "p2", "text": "电影" }
+              ]
+            }
+          ]
+        }
+        """);
+
+        using var store = NoteStore.Load(path);
+        Assert.Equal(2, store.Notes.Count);
+        Assert.Equal("周末", store.Notes[0].Title);
+        Assert.Equal("买菜", store.Notes[0].Text);
+        Assert.Equal("周末 · 2", store.Notes[1].Title);
+        Assert.Equal("电影", store.Notes[1].Text);
+        Assert.True(store.Notes[0].PinnedToDesktop);
+        Assert.True(store.Notes[1].PinnedToDesktop);
+        Assert.All(store.Notes, item => Assert.Null(item.Pages));
+    }
+
+    [Fact]
+    public void TinyFont_IsRepaired()
     {
         var path = Path.Combine(_directory, "notes.json");
         File.WriteAllText(path, """
@@ -107,21 +141,19 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Equal(12d, note.FontSize);
         Assert.Equal(NoteLimits.MinWidth, note.Width);
         Assert.Equal(NoteLimits.MinHeight, note.Height);
-        var page = Assert.Single(note.Pages);
-        Assert.False(string.IsNullOrWhiteSpace(page.Id));
-        Assert.False(note.SpreadPages);
+        Assert.Equal("", note.Text);
     }
 
     [Fact]
-    public void NewNote_UsesLightPaperAndStackedPages()
+    public void NewPage_UsesLightPaper()
     {
         var path = Path.Combine(_directory, "fresh.json");
         using var store = NoteStore.Load(path);
         var note = store.AddNew();
         Assert.Equal(Palette.DefaultBackground, note.Background);
         Assert.Equal(Palette.DefaultFont, note.FontColor);
-        Assert.False(note.SpreadPages);
-        Assert.Single(note.Pages);
+        Assert.Equal("", note.Text);
+        Assert.False(store.Settings.SpreadPages);
     }
 
     public void Dispose()

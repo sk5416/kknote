@@ -15,6 +15,7 @@ public sealed class TrayService : IDisposable
         _toggleDesktop = new WinForms.ToolStripMenuItem("隐藏桌面便签", null, (_, _) => ToggleDesktop?.Invoke(this, EventArgs.Empty));
         var menu = new WinForms.ContextMenuStrip();
         menu.Items.Add("打开面板", null, (_, _) => OpenRequested?.Invoke(this, EventArgs.Empty));
+        menu.Items.Add("待办管理", null, (_, _) => TodosRequested?.Invoke(this, EventArgs.Empty));
         menu.Items.Add(_toggleDesktop);
         menu.Items.Add(new WinForms.ToolStripSeparator());
         var version = typeof(TrayService).Assembly.GetName().Version;
@@ -37,6 +38,7 @@ public sealed class TrayService : IDisposable
     }
 
     public event EventHandler? OpenRequested;
+    public event EventHandler? TodosRequested;
     public event EventHandler? ToggleDesktop;
     public event EventHandler? ExitRequested;
 

@@ -5,8 +5,10 @@ namespace KkNote.Models;
 public sealed class Note : ObservableObject
 {
     private string _id = "";
+    private string _kind = NoteKind.Text;
     private string _title = "";
     private string _text = "";
+    private List<string> _todoIds = [];
     private bool _pinnedToDesktop;
     private bool _detached;
     private bool _alwaysOnTop = true;
@@ -19,12 +21,33 @@ public sealed class Note : ObservableObject
     private double _fontSize = 14;
     private string _fontColor = Palette.DefaultFont;
     private bool _bold;
+    private double _opacity = NoteLimits.DefaultOpacity;
+    private bool _collapsed;
 
     public string Id
     {
         get => _id;
         set => Set(ref _id, value);
     }
+
+    public string Kind
+    {
+        get => _kind;
+        set
+        {
+            var next = string.Equals(value, NoteKind.Todo, StringComparison.OrdinalIgnoreCase)
+                ? NoteKind.Todo
+                : NoteKind.Text;
+            if (Set(ref _kind, next))
+            {
+                OnPropertyChanged(nameof(IsTodo));
+                OnPropertyChanged(nameof(DisplaySnippet));
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public bool IsTodo => _kind == NoteKind.Todo;
 
     public string Title
     {
@@ -44,6 +67,23 @@ public sealed class Note : ObservableObject
             if (Set(ref _text, value ?? ""))
                 OnPropertyChanged(nameof(DisplaySnippet));
         }
+    }
+
+    public List<string> TodoIds
+    {
+        get => _todoIds;
+        set
+        {
+            _todoIds = value ?? [];
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DisplaySnippet));
+        }
+    }
+
+    public void TouchTodos()
+    {
+        OnPropertyChanged(nameof(TodoIds));
+        OnPropertyChanged(nameof(DisplaySnippet));
     }
 
     public bool PinnedToDesktop
@@ -118,6 +158,18 @@ public sealed class Note : ObservableObject
         set => Set(ref _bold, value);
     }
 
+    public double Opacity
+    {
+        get => _opacity;
+        set => Set(ref _opacity, NoteLimits.ClampOpacity(value));
+    }
+
+    public bool Collapsed
+    {
+        get => _collapsed;
+        set => Set(ref _collapsed, value);
+    }
+
     [JsonPropertyName("pages")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<NotePage>? Pages { get; set; }
@@ -130,6 +182,8 @@ public sealed class Note : ObservableObject
     {
         get
         {
+            if (IsTodo)
+                return _todoIds.Count == 0 ? "待办" : $"待办 · {_todoIds.Count} 项";
             var line = _text.Replace("\r", "").Split('\n')[0].Trim();
             if (line.Length > 18)
                 line = line[..18] + "…";
@@ -137,11 +191,16 @@ public sealed class Note : ObservableObject
         }
     }
 
-    public static Note CreateNew(double x, double y) => new()
+    public static Note CreateNew(double x, double y, string kind = NoteKind.Text)
     {
-        Id = Guid.NewGuid().ToString("N"),
-        Title = "新页",
-        X = x,
-        Y = y,
-    };
+        var todo = string.Equals(kind, NoteKind.Todo, StringComparison.OrdinalIgnoreCase);
+        return new Note
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Kind = todo ? NoteKind.Todo : NoteKind.Text,
+            Title = todo ? "待办" : "新页",
+            X = x,
+            Y = y,
+        };
+    }
 }

@@ -7,6 +7,17 @@ public static class NoteLimits
     public const double MinHeight = 210;
     public const double DefaultWidth = 320;
     public const double DefaultHeight = 380;
+    public const double MinOpacity = 0.2;
+    public const double MaxOpacity = 1.0;
+    public const double DefaultOpacity = 0.9;
+    public const double CollapsedHeight = 42;
+
+    public static double ClampOpacity(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0)
+            return DefaultOpacity;
+        return Math.Clamp(value, MinOpacity, MaxOpacity);
+    }
 
     public static double SnapFontSize(double size)
     {

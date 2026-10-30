@@ -3,46 +3,205 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:KkNote.Views"
              Background="Transparent">
-  <StackPanel>
-    <ToggleButton x:Name="Toggle"
-                  Style="{StaticResource PaperToggle}"
-                  Content="格式"
-                  Height="26"
-                  HorizontalAlignment="Left"
-                  Padding="10,2"
-                  AutomationProperties.Name="格式"
-                  Checked="Toggle_Changed"
-                  Unchecked="Toggle_Changed"/>
-    <Border x:Name="Panel"
-            Visibility="Collapsed"
-            Margin="0,6,0,0"
-            Padding="8,8,8,6"
-            CornerRadius="8"
-            BorderThickness="1"
-            BorderBrush="#D9CDBB"
-            Background="#FBF6EE">
-      <StackPanel>
-        <TextBlock x:Name="PaperLabel" Text="纸色" FontSize="11" Margin="0,0,0,6" Foreground="#9A8F80"/>
-        <WrapPanel x:Name="BgSwatches" Margin="0,0,0,8"/>
-        <Grid Margin="0,0,0,8">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="64"/>
-            <ColumnDefinition Width="Auto"/>
-          </Grid.ColumnDefinitions>
-          <ComboBox x:Name="FontBox" Style="{StaticResource DarkCombo}" Height="28"
-                    ItemsSource="{x:Static views:FontCatalog.Families}"
-                    SelectionChanged="FontBox_SelectionChanged"/>
-          <ComboBox x:Name="SizeBox" Grid.Column="1" Margin="6,0,0,0" Style="{StaticResource DarkCombo}" Height="28"
-                    ItemsSource="{x:Static views:FontCatalog.Sizes}"
-                    SelectionChanged="SizeBox_SelectionChanged"/>
-          <ToggleButton x:Name="BoldBox" Grid.Column="2" Margin="6,0,0,0" Content="B" FontWeight="Bold"
-                        Width="28" Height="28" Padding="0" Style="{StaticResource PaperToggle}"
-                        Checked="BoldBox_Changed" Unchecked="BoldBox_Changed"/>
-        </Grid>
-        <TextBlock x:Name="InkLabel" Text="字色" FontSize="11" Margin="0,0,0,6" Foreground="#9A8F80"/>
-        <WrapPanel x:Name="FgSwatches"/>
+  <Border x:Name="Strip"
+          BorderThickness="0,0,0,1"
+          BorderBrush="#E2D6C4"
+          Padding="8,2,6,2"
+          MouseLeftButtonDown="Strip_MouseLeftButtonDown">
+    <DockPanel LastChildFill="True">
+      <ToggleButton x:Name="Toggle"
+                    DockPanel.Dock="Right"
+                    Content="▾"
+                    Width="22"
+                    Height="22"
+                    Padding="0"
+                    Margin="6,0,0,0"
+                    FontSize="10"
+                    Style="{StaticResource PaperToggle}"
+                    VerticalAlignment="Center"
+                    ToolTip="展开或收起格式"
+                    AutomationProperties.Name="格式"
+                    Checked="Toggle_Changed"
+                    Unchecked="Toggle_Changed"/>
+      <TextBlock x:Name="Hint"
+                 Text="格式"
+                 FontSize="11"
+                 VerticalAlignment="Center"
+                 Foreground="#9A8F80"
+                 IsHitTestVisible="False"/>
+      <StackPanel x:Name="Tools"
+                  Orientation="Horizontal"
+                  VerticalAlignment="Center"
+                  Visibility="Collapsed">
+        <ToggleButton x:Name="PaperChip"
+                      Width="30"
+                      Height="22"
+                      Padding="0"
+                      Margin="0,0,6,0"
+                      Style="{StaticResource PaperToggle}"
+                      ToolTip="纸色"
+                      AutomationProperties.Name="纸色"
+                      Checked="PaperChip_Changed"
+                      Unchecked="PaperChip_Changed">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border x:Name="PaperDot"
+                    Width="12"
+                    Height="12"
+                    CornerRadius="2"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BorderThickness="1"
+                    BorderBrush="#D9CDBB"/>
+            <Path x:Name="PaperCaret"
+                  Grid.Column="1"
+                  Data="M 0 0 L 3 3 L 6 0"
+                  Stroke="#9A8F80"
+                  StrokeThickness="1.2"
+                  VerticalAlignment="Center"
+                  Margin="0,0,4,0"
+                  Stretch="None"/>
+          </Grid>
+        </ToggleButton>
+        <Popup x:Name="PaperPopup"
+               PlacementTarget="{Binding ElementName=PaperChip}"
+               Placement="Bottom"
+               AllowsTransparency="True"
+               StaysOpen="False"
+               Closed="PaperPopup_Closed">
+          <Border x:Name="PaperPopupBorder"
+                  Margin="0,4,0,0"
+                  Padding="8,8,2,8"
+                  CornerRadius="8"
+                  BorderThickness="1"
+                  Background="#FBF6EE"
+                  BorderBrush="#D9CDBB">
+            <StackPanel x:Name="BgSwatches" Orientation="Horizontal"/>
+          </Border>
+        </Popup>
+
+        <ComboBox x:Name="FontBox"
+                  Style="{StaticResource CompactCombo}"
+                  Width="96"
+                  Height="22"
+                  Margin="0,0,6,0"
+                  ItemsSource="{x:Static views:FontCatalog.Families}"
+                  ToolTip="字体"
+                  AutomationProperties.Name="字体"
+                  SelectionChanged="FontBox_SelectionChanged"/>
+        <ComboBox x:Name="SizeBox"
+                  Style="{StaticResource CompactCombo}"
+                  Width="44"
+                  Height="22"
+                  Margin="0,0,6,0"
+                  ItemsSource="{x:Static views:FontCatalog.Sizes}"
+                  ToolTip="字号"
+                  AutomationProperties.Name="字号"
+                  SelectionChanged="SizeBox_SelectionChanged"/>
+        <ToggleButton x:Name="BoldBox"
+                      Content="B"
+                      FontWeight="Bold"
+                      FontSize="12"
+                      Width="22"
+                      Height="22"
+                      Padding="0"
+                      Margin="0,0,6,0"
+                      Style="{StaticResource PaperToggle}"
+                      ToolTip="加粗"
+                      AutomationProperties.AutomationId="BoldToggle"
+                      AutomationProperties.Name="加粗"
+                      Checked="BoldBox_Changed"
+                      Unchecked="BoldBox_Changed"/>
+
+        <ToggleButton x:Name="InkChip"
+                      Width="30"
+                      Height="22"
+                      Padding="0"
+                      Style="{StaticResource PaperToggle}"
+                      ToolTip="字色"
+                      AutomationProperties.Name="字色"
+                      Checked="InkChip_Changed"
+                      Unchecked="InkChip_Changed">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border x:Name="InkDot"
+                    Width="12"
+                    Height="12"
+                    CornerRadius="6"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BorderThickness="1"
+                    BorderBrush="#D9CDBB"/>
+            <Path x:Name="InkCaret"
+                  Grid.Column="1"
+                  Data="M 0 0 L 3 3 L 6 0"
+                  Stroke="#9A8F80"
+                  StrokeThickness="1.2"
+                  VerticalAlignment="Center"
+                  Margin="0,0,4,0"
+                  Stretch="None"/>
+          </Grid>
+        </ToggleButton>
+        <Popup x:Name="InkPopup"
+               PlacementTarget="{Binding ElementName=InkChip}"
+               Placement="Bottom"
+               AllowsTransparency="True"
+               StaysOpen="False"
+               Closed="InkPopup_Closed">
+          <Border x:Name="InkPopupBorder"
+                  Margin="0,4,0,0"
+                  Padding="8,8,2,8"
+                  CornerRadius="8"
+                  BorderThickness="1"
+                  Background="#FBF6EE"
+                  BorderBrush="#D9CDBB">
+            <StackPanel x:Name="FgSwatches" Orientation="Horizontal"/>
+          </Border>
+        </Popup>
+
+        <ToggleButton x:Name="OpacityChip"
+                      MinWidth="40"
+                      Height="22"
+                      Padding="6,0"
+                      Margin="6,0,0,0"
+                      Style="{StaticResource PaperToggle}"
+                      ToolTip="全部桌面页签共用的透明度，越低越透"
+                      AutomationProperties.Name="透明度"
+                      Checked="OpacityChip_Changed"
+                      Unchecked="OpacityChip_Changed"/>
+        <Popup x:Name="OpacityPopup"
+               PlacementTarget="{Binding ElementName=OpacityChip}"
+               Placement="Bottom"
+               AllowsTransparency="True"
+               StaysOpen="False"
+               Closed="OpacityPopup_Closed">
+          <Border x:Name="OpacityPopupBorder"
+                  Margin="0,4,0,0"
+                  Padding="10,8"
+                  CornerRadius="8"
+                  BorderThickness="1"
+                  Background="#FBF6EE"
+                  BorderBrush="#D9CDBB">
+            <StackPanel Width="160">
+              <TextBlock x:Name="OpacityLabel" FontSize="11" Margin="0,0,0,6" Foreground="#9A8F80"/>
+              <Slider x:Name="OpacitySlider"
+                      Minimum="0.2"
+                      Maximum="1"
+                      SmallChange="0.05"
+                      LargeChange="0.1"
+                      TickFrequency="0.1"
+                      IsSnapToTickEnabled="False"
+                      ValueChanged="OpacitySlider_Changed"/>
+            </StackPanel>
+          </Border>
+        </Popup>
       </StackPanel>
-    </Border>
-  </StackPanel>
+    </DockPanel>
+  </Border>
 </UserControl>

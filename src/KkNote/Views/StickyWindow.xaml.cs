@@ -17,6 +17,8 @@ public partial class StickyWindow : Window
     private bool _ready;
     private bool _closing;
     private bool _internal;
+    private bool _folding;
+    private double _restoredHeight;
 
     public StickyWindow(NoteStore store, Note note)
     {
@@ -25,7 +27,8 @@ public partial class StickyWindow : Window
         DataContext = note;
         InitializeComponent();
         Width = Math.Max(note.Width, MinWidth);
-        Height = Math.Max(note.Height, MinHeight);
+        _restoredHeight = Math.Max(note.Height, NoteLimits.MinHeight);
+        Height = _restoredHeight;
         Left = note.X;
         Top = note.Y;
         Title = note.DisplayTitle;
@@ -33,8 +36,13 @@ public partial class StickyWindow : Window
         SpreadToggle.IsChecked = true;
         _internal = false;
         note.PropertyChanged += OnNoteProperty;
+        store.Settings.PropertyChanged += OnSettingsChanged;
+        StyleBar.Store = store;
         StyleBar.Note = note;
+        TodoHost.Store = store;
+        TodoHost.Note = note;
         ApplyChrome();
+        ApplyCollapsed();
     }
 
     public bool SuppressUnpin { get; set; }
@@ -50,7 +58,6 @@ public partial class StickyWindow : Window
     {
         base.OnSourceInitialized(e);
         WindowEffects.MakeToolWindow(this);
-        WindowEffects.ApplyRounded(this, dark: !ColorUtil.IsLight(_note.Background));
     }
 
     protected override void OnContentRendered(EventArgs e)
@@ -69,8 +76,11 @@ public partial class StickyWindow : Window
         _note.Y = Top;
         if (ActualWidth >= NoteLimits.MinWidth)
             _note.Width = ActualWidth;
-        if (ActualHeight >= NoteLimits.MinHeight)
+        if (!_note.Collapsed && ActualHeight >= NoteLimits.MinHeight)
+        {
             _note.Height = ActualHeight;
+            _restoredHeight = ActualHeight;
+        }
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -80,6 +90,7 @@ public partial class StickyWindow : Window
             return;
         _closing = true;
         _note.PropertyChanged -= OnNoteProperty;
+        _store.Settings.PropertyChanged -= OnSettingsChanged;
         if (!SuppressUnpin && _note.PinnedToDesktop)
             _note.PinnedToDesktop = false;
     }
@@ -103,18 +114,31 @@ public partial class StickyWindow : Window
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
-        if (!_ready)
+        if (!_ready || _folding)
             return;
         _note.Width = ActualWidth;
-        _note.Height = ActualHeight;
+        if (!_note.Collapsed && ActualHeight >= NoteLimits.MinHeight)
+        {
+            _note.Height = ActualHeight;
+            _restoredHeight = ActualHeight;
+        }
+    }
+
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppSettings.Opacity))
+            Opacity = _store.Settings.Opacity;
     }
 
     private void OnNoteProperty(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(Note.Title))
             Title = _note.DisplayTitle;
+        else if (e.PropertyName == nameof(Note.Collapsed))
+            ApplyCollapsed();
         else if (e.PropertyName is nameof(Note.Background) or nameof(Note.FontColor)
-                 or nameof(Note.FontFamily) or nameof(Note.FontSize) or nameof(Note.Bold))
+                 or nameof(Note.FontFamily) or nameof(Note.FontSize) or nameof(Note.Bold)
+                 or nameof(Note.Kind))
             ApplyChrome();
     }
 
@@ -135,11 +159,63 @@ public partial class StickyWindow : Window
         Body.FontWeight = _note.Bold ? FontWeights.Bold : FontWeights.Normal;
         Paper.Background = paper;
         Paper.BorderBrush = light ? ColorUtil.Brush("#E2D6C4") : ColorUtil.Brush("#34506A");
-        PinButton.Foreground = light ? ColorUtil.Brush("#3A3228") : ColorUtil.Brush("#E7EEF9");
-        CloseButton.Foreground = PinButton.Foreground;
-        SpreadToggle.Foreground = PinButton.Foreground;
-        if (IsLoaded)
-            WindowEffects.ApplyRounded(this, dark: !light);
+        var buttonInk = light ? ColorUtil.Brush("#3A3228") : ColorUtil.Brush("#E7EEF9");
+        CloseButton.Foreground = buttonInk;
+        CollapseButton.Foreground = buttonInk;
+        SpreadToggle.Foreground = buttonInk;
+        Opacity = _store.Settings.Opacity;
+        var todo = _note.IsTodo;
+        TextHost.Visibility = todo ? Visibility.Collapsed : Visibility.Visible;
+        TodoHost.Visibility = todo ? Visibility.Visible : Visibility.Collapsed;
+        if (_note.Collapsed)
+            ApplyCollapsed();
+    }
+
+    private void ApplyCollapsed()
+    {
+        var folded = _note.Collapsed;
+        _internal = true;
+        CollapseButton.IsChecked = folded;
+        _internal = false;
+        var vis = folded ? Visibility.Collapsed : Visibility.Visible;
+        StyleBar.Visibility = vis;
+        BodyHost.Visibility = vis;
+        Footer.Visibility = vis;
+        CollapseButton.Content = folded ? "▾" : "▴";
+        CollapseButton.ToolTip = folded ? "展开" : "折叠成标题栏";
+        _folding = true;
+        try
+        {
+            if (folded)
+            {
+                if (ActualHeight >= NoteLimits.MinHeight)
+                {
+                    _restoredHeight = ActualHeight;
+                    _note.Height = ActualHeight;
+                }
+                MinHeight = NoteLimits.CollapsedHeight;
+                MaxHeight = NoteLimits.CollapsedHeight;
+                Height = NoteLimits.CollapsedHeight;
+            }
+            else
+            {
+                var restore = Math.Max(_restoredHeight, Math.Max(_note.Height, NoteLimits.MinHeight));
+                MaxHeight = double.PositiveInfinity;
+                MinHeight = NoteLimits.MinHeight;
+                Height = restore;
+            }
+        }
+        finally
+        {
+            _folding = false;
+        }
+    }
+
+    private void CollapseButton_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_internal)
+            return;
+        _note.Collapsed = CollapseButton.IsChecked == true;
     }
 
     private void SetMenuTopmost(bool value) => _note.AlwaysOnTop = value;
@@ -165,6 +241,12 @@ public partial class StickyWindow : Window
     private void Window_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (FindParent<TextBox>(e.OriginalSource as DependencyObject) != null)
+            return;
+        if (FindParent<System.Windows.Controls.Primitives.ButtonBase>(e.OriginalSource as DependencyObject) != null)
+            return;
+        if (FindParent<ComboBox>(e.OriginalSource as DependencyObject) != null)
+            return;
+        if (FindParent<Calendar>(e.OriginalSource as DependencyObject) != null)
             return;
         PageListMenu.Fill(PageMenu, _store, _note, _note.AlwaysOnTop, SetMenuTopmost);
         PageMenu.Placement = PlacementMode.MousePoint;

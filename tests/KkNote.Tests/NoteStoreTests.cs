@@ -153,8 +153,64 @@ public sealed class NoteStoreTests : IDisposable
         Assert.Equal(Palette.DefaultBackground, note.Background);
         Assert.Equal(Palette.DefaultFont, note.FontColor);
         Assert.Equal("", note.Text);
+        Assert.Equal(NoteLimits.DefaultOpacity, note.Opacity);
         Assert.False(note.Detached);
         Assert.False(store.Settings.SpreadPages);
+    }
+
+    [Fact]
+    public void MissingOpacity_DefaultsToNinetyPercent()
+    {
+        var path = Path.Combine(_directory, "opacity.json");
+        File.WriteAllText(path, """
+        {
+          "settings": { "hotkey": "Ctrl+Alt+N" },
+          "notes": [ { "id": "a", "title": "旧", "text": "x" } ]
+        }
+        """);
+
+        using var store = NoteStore.Load(path);
+        var note = Assert.Single(store.Notes);
+        Assert.Equal(0.9, store.Settings.Opacity);
+        store.Settings.Opacity = 0.8;
+        store.SaveNow();
+
+        using var loaded = NoteStore.Load(path);
+        Assert.Equal(0.8, loaded.Settings.Opacity);
+    }
+
+    [Fact]
+    public void MovePageTodo_ReordersIds()
+    {
+        var path = Path.Combine(_directory, "order.json");
+        using var store = NoteStore.Load(path);
+        var a = store.AddTodo("甲");
+        var b = store.AddTodo("乙");
+        var c = store.AddTodo("丙");
+        var page = store.AddNew(NoteKind.Todo);
+        store.AttachTodo(page, a.Id);
+        store.AttachTodo(page, b.Id);
+        store.AttachTodo(page, c.Id);
+        store.MovePageTodo(page, c.Id, a.Id);
+        Assert.Equal(new[] { c.Id, a.Id, b.Id }, page.TodoIds);
+    }
+
+    [Fact]
+    public void CollapsedDesktopCard_RoundTrips()
+    {
+        var path = Path.Combine(_directory, "fold.json");
+        using (var store = NoteStore.Load(path))
+        {
+            var note = store.AddNew();
+            note.Collapsed = true;
+            store.Settings.StackCollapsed = true;
+            store.SaveNow();
+        }
+
+        using var loaded = NoteStore.Load(path);
+        Assert.True(Assert.Single(loaded.Notes).Collapsed);
+        Assert.True(loaded.Settings.StackCollapsed);
+        Assert.Equal(NoteLimits.DefaultOpacity, loaded.Notes[0].Opacity);
     }
 
     [Fact]
@@ -175,6 +231,73 @@ public sealed class NoteStoreTests : IDisposable
         Assert.True(store.Notes[0].Detached);
         Assert.False(store.Notes[1].Detached);
         Assert.False(store.Settings.SpreadPages);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesTodosAndPageRefs()
+    {
+        var path = Path.Combine(_directory, "todos.json");
+        string todoId;
+        using (var store = NoteStore.Load(path))
+        {
+            var todo = store.AddTodo("买菜", new DateTime(2026, 9, 18));
+            todoId = todo.Id;
+            var page = store.AddNew(NoteKind.Todo);
+            page.Title = "本周";
+            store.AttachTodo(page, todo.Id);
+            store.Settings.DateFormat = DateFormats.Ymd;
+            store.Settings.DueSoonDays = 5;
+            store.SaveNow();
+        }
+
+        var json = File.ReadAllText(path);
+        Assert.Contains("买菜", json);
+        Assert.Contains("2026-09-18", json);
+        Assert.Contains("\"kind\": \"todo\"", json);
+
+        using var loaded = NoteStore.Load(path);
+        var restored = Assert.Single(loaded.Todos);
+        Assert.Equal("买菜", restored.Text);
+        Assert.Equal(new DateTime(2026, 9, 18), restored.Due);
+        Assert.Equal(DateFormats.Ymd, loaded.Settings.DateFormat);
+        Assert.Equal(5, loaded.Settings.DueSoonDays);
+        var pageRestored = Assert.Single(loaded.Notes);
+        Assert.True(pageRestored.IsTodo);
+        Assert.Equal(todoId, Assert.Single(pageRestored.TodoIds));
+        Assert.Equal("待办 · 1 项", pageRestored.DisplaySnippet);
+    }
+
+    [Fact]
+    public void DeleteTodo_StripsPageRefs()
+    {
+        var path = Path.Combine(_directory, "strip.json");
+        using var store = NoteStore.Load(path);
+        var todo = store.AddTodo("电影");
+        var page = store.AddNew(NoteKind.Todo);
+        store.AttachTodo(page, todo.Id);
+        store.DeleteTodo(todo);
+        Assert.Empty(store.Todos);
+        Assert.Empty(page.TodoIds);
+    }
+
+    [Fact]
+    public void LegacyJson_WithoutKind_IsTextPage()
+    {
+        var path = Path.Combine(_directory, "legacy-kind.json");
+        File.WriteAllText(path, """
+        {
+          "settings": { "hotkey": "Ctrl+Alt+N" },
+          "notes": [ { "id": "a", "title": "旧", "text": "hello" } ]
+        }
+        """);
+
+        using var store = NoteStore.Load(path);
+        var note = Assert.Single(store.Notes);
+        Assert.Equal(NoteKind.Text, note.Kind);
+        Assert.False(note.IsTodo);
+        Assert.Empty(store.Todos);
+        Assert.Equal(DateFormats.Md, store.Settings.DateFormat);
+        Assert.Equal(3, store.Settings.DueSoonDays);
     }
 
     public void Dispose()

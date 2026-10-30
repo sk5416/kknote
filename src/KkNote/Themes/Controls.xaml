@@ -95,6 +95,41 @@
     </Setter>
   </Style>
 
+  <Style x:Key="TodoAddBox" TargetType="TextBox">
+    <Setter Property="Height" Value="30"/>
+    <Setter Property="MinHeight" Value="30"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Padding" Value="8,1,8,1"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalScrollBarVisibility" Value="Disabled"/>
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border x:Name="Bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="6"
+                  Padding="{TemplateBinding Padding}"
+                  SnapsToDevicePixels="True">
+            <ScrollViewer x:Name="PART_ContentHost"
+                          VerticalAlignment="Center"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Disabled"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style x:Key="NoteBody" TargetType="TextBox" BasedOn="{StaticResource FieldTextBox}">
     <Setter Property="Background" Value="Transparent"/>
     <Setter Property="BorderThickness" Value="0"/>
@@ -257,6 +292,77 @@
     </Setter>
   </Style>
 
+  <Style x:Key="CompactCombo" TargetType="ComboBox">
+    <Setter Property="Foreground" Value="#2A3340"/>
+    <Setter Property="Background" Value="#FBF6EE"/>
+    <Setter Property="BorderBrush" Value="#D9CDBB"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="Height" Value="22"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid x:Name="ComboRoot" ClipToBounds="True">
+            <ToggleButton Focusable="False"
+                          ClickMode="Press"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                          Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Border x:Name="Bd"
+                          Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="6">
+                    <Path Data="M 0 0 L 3.5 3.5 L 7 0"
+                          Stroke="#9A8F80"
+                          StrokeThickness="1.2"
+                          Width="7" Height="4"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                          Margin="0,0,6,0"
+                          Stretch="None"/>
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter TargetName="Bd" Property="BorderBrush" Value="#C4A574"/>
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </ToggleButton.Template>
+            </ToggleButton>
+            <ContentPresenter IsHitTestVisible="False"
+                              Margin="6,0,16,0"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Left"
+                              Content="{TemplateBinding SelectionBoxItem}"
+                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"/>
+            <Popup Placement="Bottom"
+                   PlacementTarget="{Binding ElementName=ComboRoot}"
+                   AllowsTransparency="True"
+                   Focusable="False"
+                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                   PopupAnimation="Fade">
+              <Border Margin="0,3,0,0"
+                      MinWidth="168"
+                      Background="{StaticResource SurfaceBrush}"
+                      BorderBrush="{StaticResource LineBrush}"
+                      BorderThickness="1"
+                      CornerRadius="8">
+                <ScrollViewer MaxHeight="240" Margin="0,4">
+                  <ItemsPresenter/>
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style x:Key="DarkCombo" TargetType="ComboBox">
     <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
@@ -365,6 +471,61 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+  </Style>
+
+  <Style x:Key="PushpinToggle" TargetType="ToggleButton">
+    <Setter Property="Width" Value="28"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="ToolTip" Value="插入钉子，保持最前"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border Background="Transparent" Width="28" Height="28">
+            <Grid>
+              <Viewbox x:Name="Pulled" Width="16" Height="20">
+                <Canvas Width="16" Height="22">
+                  <Canvas.RenderTransform>
+                    <RotateTransform Angle="-42" CenterX="8" CenterY="7"/>
+                  </Canvas.RenderTransform>
+                  <Path Data="M7.2,11 L8.8,11 L8,21.5 Z" Fill="#8A93A0"/>
+                  <Ellipse Canvas.Left="5" Canvas.Top="8.6" Width="6" Height="3.6" Fill="#B36A6A"/>
+                  <Ellipse Canvas.Left="2.4" Canvas.Top="0" Width="11.2" Height="11.2" Fill="#E07A7A"/>
+                  <Ellipse Canvas.Left="5.2" Canvas.Top="2.1" Width="4.6" Height="3.4" Fill="#F8D0D0"/>
+                </Canvas>
+              </Viewbox>
+              <Viewbox x:Name="Inserted" Width="16" Height="20" Visibility="Collapsed">
+                <Canvas Width="16" Height="22">
+                  <Canvas.RenderTransform>
+                    <RotateTransform Angle="12" CenterX="8" CenterY="7"/>
+                  </Canvas.RenderTransform>
+                  <Path Data="M7.2,11 L8.8,11 L8,21.5 Z" Fill="#5A6270"/>
+                  <Ellipse Canvas.Left="5" Canvas.Top="8.6" Width="6" Height="3.6" Fill="#7A2E2E"/>
+                  <Ellipse Canvas.Left="2.4" Canvas.Top="0" Width="11.2" Height="11.2" Fill="#C43C3C"/>
+                  <Ellipse Canvas.Left="5.2" Canvas.Top="2.1" Width="4.6" Height="3.4" Fill="#E8A0A0"/>
+                </Canvas>
+              </Viewbox>
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Pulled" Property="Visibility" Value="Collapsed"/>
+              <Setter TargetName="Inserted" Property="Visibility" Value="Visible"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter Property="ToolTip" Value="拔起钉子，取消置顶"/>
+      </Trigger>
+    </Style.Triggers>
   </Style>
 
   <Style x:Key="PaperButton" TargetType="Button">

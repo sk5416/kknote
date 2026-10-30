@@ -9,9 +9,10 @@
         MinWidth="240"
         MinHeight="210"
         WindowStyle="None"
+        AllowsTransparency="True"
         ResizeMode="CanResize"
         ShowInTaskbar="False"
-        Background="#EFE6D4"
+        Background="Transparent"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display"
@@ -29,18 +30,18 @@
                         UseAeroCaptionButtons="False"/>
   </shell:WindowChrome.WindowChrome>
 
-  <Border x:Name="Root" BorderThickness="1" Background="#EFE6D4" BorderBrush="#D9CDBB">
+  <Border x:Name="Root" BorderThickness="1" Background="#EFE6D4" BorderBrush="#D9CDBB" CornerRadius="10">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="40"/>
-        <RowDefinition Height="*"/>
         <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
         <RowDefinition Height="Auto"/>
       </Grid.RowDefinitions>
 
       <Grid x:Name="Header" Grid.Row="0" Background="#F6F0E4">
         <TextBlock x:Name="TitleLabel"
-                   Margin="14,0,148,0"
+                   Margin="14,0,132,0"
                    VerticalAlignment="Center"
                    FontSize="14"
                    FontWeight="SemiBold"
@@ -50,26 +51,24 @@
                    AutomationProperties.AutomationId="StickyTitle"
                    AutomationProperties.Name="便签标题"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
-          <ToggleButton x:Name="PinButton"
+          <ToggleButton x:Name="CollapseButton"
+                        Width="26"
+                        Height="26"
+                        Padding="0"
+                        FontSize="11"
+                        Content="▴"
+                        ToolTip="折叠成标题栏"
+                        Style="{StaticResource PaperToggle}"
+                        AutomationProperties.Name="折叠"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Checked="CollapseButton_Changed"
+                        Unchecked="CollapseButton_Changed"/>
+          <ToggleButton x:Name="PinButton" Margin="4,0,0,0"
+                        Style="{StaticResource PushpinToggle}"
                         AutomationProperties.AutomationId="ToggleTopmost"
                         AutomationProperties.Name="置顶"
-                        ToolTip="是否保持在最前"
                         Checked="PinButton_Changed" Unchecked="PinButton_Changed"
-                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
-            <ToggleButton.Style>
-              <Style TargetType="ToggleButton" BasedOn="{StaticResource PaperToggle}">
-                <Setter Property="Height" Value="26"/>
-                <Setter Property="MinWidth" Value="52"/>
-                <Setter Property="Padding" Value="8,2"/>
-                <Setter Property="Content" Value="置顶"/>
-                <Style.Triggers>
-                  <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Content" Value="已置顶"/>
-                  </Trigger>
-                </Style.Triggers>
-              </Style>
-            </ToggleButton.Style>
-          </ToggleButton>
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
           <Button x:Name="CloseButton" Content="×" Style="{StaticResource PaperIconButton}" Margin="6,0,0,0"
                   AutomationProperties.AutomationId="UnpinNote"
                   AutomationProperties.Name="取消固化"
@@ -79,44 +78,47 @@
         </StackPanel>
       </Grid>
 
-      <Grid x:Name="Deck" Grid.Row="1" Margin="10,4,10,4" ClipToBounds="False">
+      <views:NoteStyleBar x:Name="StyleBar" Grid.Row="1"/>
+
+      <Grid x:Name="Deck" Grid.Row="2" Margin="10,2,10,0" ClipToBounds="True">
         <Grid x:Name="PeekLayer"/>
-        <Border x:Name="FrontPaper" CornerRadius="8" BorderThickness="1" BorderBrush="#E2D6C4" Background="#F6F0E4"
-                Margin="0,0,28,24">
+        <Border x:Name="FrontPaper" CornerRadius="8" BorderThickness="1" BorderBrush="#E2D6C4" Background="#F6F0E4">
           <Border.Effect>
             <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="250" Opacity="0.16" Color="#6B5A40"/>
           </Border.Effect>
           <Grid>
-            <TextBox x:Name="Body"
-                     Style="{StaticResource NoteBody}"
-                     AutomationProperties.AutomationId="NoteBody"
-                     AutomationProperties.Name="正文"
-                     TextChanged="Body_TextChanged"
-                     Language="zh-CN"/>
-            <TextBlock x:Name="Placeholder" Text="写点什么…" Margin="16,12,12,0" VerticalAlignment="Top"
-                       IsHitTestVisible="False" Foreground="#9A8F80"/>
-            <TextBlock x:Name="PageBadge" HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                       Margin="12,0,0,8" FontSize="11" Foreground="#9A8F80" IsHitTestVisible="False"/>
+            <Grid x:Name="TextHost">
+              <TextBox x:Name="Body"
+                       Style="{StaticResource NoteBody}"
+                       AutomationProperties.AutomationId="NoteBody"
+                       AutomationProperties.Name="正文"
+                       TextChanged="Body_TextChanged"
+                       Language="zh-CN"/>
+              <TextBlock x:Name="Placeholder" Text="写点什么…" Margin="16,12,12,0" VerticalAlignment="Top"
+                         IsHitTestVisible="False" Foreground="#9A8F80"/>
+              <TextBlock x:Name="PageBadge" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                         Margin="12,0,0,8" FontSize="11" Foreground="#9A8F80" IsHitTestVisible="False"/>
+            </Grid>
+            <views:TodoListView x:Name="TodoHost" Visibility="Collapsed"/>
           </Grid>
         </Border>
       </Grid>
 
-      <views:NoteStyleBar x:Name="StyleBar" Grid.Row="2" Margin="10,0,10,6"/>
-
-      <DockPanel Grid.Row="3" Margin="10,0,10,10">
+      <DockPanel x:Name="Footer" Grid.Row="3" Margin="10,4,10,4">
         <ToggleButton x:Name="SpreadToggle" DockPanel.Dock="Left" Style="{StaticResource PaperToggle}"
                       Content="单独列示" Height="28" Padding="10,2"
                       AutomationProperties.AutomationId="SpreadPages" AutomationProperties.Name="单独列示"
                       ToolTip="把当前页从纸沓里拆出来单独看"
                       Checked="SpreadToggle_Changed" Unchecked="SpreadToggle_Changed"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Content="加页" Style="{StaticResource PaperButton}" Height="28" Margin="0,0,6,0"
-                  AutomationProperties.AutomationId="AddPage" AutomationProperties.Name="加页"
-                  Click="Add_Click"/>
-          <Button x:Name="RemoveButton" Content="减页" Style="{StaticResource PaperButton}" Height="28"
-                  AutomationProperties.AutomationId="RemovePage" AutomationProperties.Name="减页"
-                  ToolTip="把当前页从桌面拿下来"
-                  Click="Unpin_Click"/>
+          <Button Content="+文本页" Style="{StaticResource PaperButton}" Height="28" Padding="8,2" Margin="0,0,6,0"
+                  FontSize="12"
+                  AutomationProperties.AutomationId="AddPage" AutomationProperties.Name="添加文本页"
+                  Click="AddText_Click"/>
+          <Button Content="+待办页" Style="{StaticResource PaperButton}" Height="28" Padding="8,2"
+                  FontSize="12"
+                  AutomationProperties.AutomationId="AddTodoPage" AutomationProperties.Name="添加待办页"
+                  Click="AddTodo_Click"/>
         </StackPanel>
       </DockPanel>
     </Grid>

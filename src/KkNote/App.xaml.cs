@@ -16,6 +16,8 @@ public partial class App : Application
     private TrayService? _tray;
     private HotkeyService? _hotkey;
     private ControlPanelWindow? _panel;
+    private TodoManagerWindow? _todos;
+    private DayClock? _clock;
     private PaperStackWindow? _stack;
     private bool _desktopHidden;
     private bool _exiting;
@@ -62,17 +64,21 @@ public partial class App : Application
         _panel = new ControlPanelWindow(_store);
         _tray = new TrayService();
         _hotkey = new HotkeyService();
+        _clock = new DayClock();
+        _clock.Start();
 
         _store.Notes.CollectionChanged += OnNotesChanged;
         _store.ActivateRequested += ShowPage;
         _store.OpenPanelRequested += ShowPanel;
+        _store.OpenTodosRequested += ShowTodos;
         foreach (var note in _store.Notes.ToList())
             Attach(note);
         RebuildDesktop();
 
-        _tray.OpenRequested += (_, _) => ShowPanel();
-        _tray.ToggleDesktop += (_, _) => ToggleAllDesktop();
-        _tray.ExitRequested += (_, _) => ExitApp();
+        _tray.OpenRequested += (_, _) => Dispatcher.BeginInvoke(ShowPanel);
+        _tray.TodosRequested += (_, _) => Dispatcher.BeginInvoke(ShowTodos);
+        _tray.ToggleDesktop += (_, _) => Dispatcher.BeginInvoke(ToggleAllDesktop);
+        _tray.ExitRequested += (_, _) => Dispatcher.BeginInvoke(ExitApp);
         _hotkey.Pressed += (_, _) => TogglePanel();
         _single.Activated += (_, _) => Dispatcher.BeginInvoke(ShowPanel);
         _panel.SourceInitialized += (_, _) => RegisterHotkey();
@@ -105,6 +111,8 @@ public partial class App : Application
             foreach (Note note in e.OldItems)
                 Detach(note);
         }
+
+        RebuildDesktop();
     }
 
     private void Attach(Note note) => note.PropertyChanged += OnNoteProperty;
@@ -264,6 +272,18 @@ public partial class App : Application
         _panel.Activate();
     }
 
+    private void ShowTodos()
+    {
+        if (_store == null)
+            return;
+        _todos ??= new TodoManagerWindow(_store);
+        if (_todos.WindowState == WindowState.Minimized)
+            _todos.WindowState = WindowState.Normal;
+        _todos.Topmost = true;
+        _todos.Show();
+        _todos.Activate();
+    }
+
     private void TogglePanel()
     {
         if (_panel == null)
@@ -282,7 +302,14 @@ public partial class App : Application
         try
         {
             _hotkey?.Dispose();
+            _clock?.Dispose();
             CloseDesktopWindows(suppressUnpin: true);
+
+            if (_todos != null)
+            {
+                _todos.AllowClose = true;
+                _todos.Close();
+            }
 
             if (_panel != null)
             {

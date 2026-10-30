@@ -1,0 +1,29 @@
+<UserControl x:Class="KkNote.Views.TodoListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  Margin="8,8,8,0">
+      <StackPanel x:Name="Rows"/>
+    </ScrollViewer>
+    <DockPanel Grid.Row="1" Margin="8,4,8,2">
+      <Button x:Name="PickButton"
+              DockPanel.Dock="Right"
+              Content="选用已有"
+              Height="30"
+              MinHeight="30"
+              Padding="10,0"
+              Margin="6,0,0,0"
+              VerticalAlignment="Center"
+              Click="Pick_Click"/>
+      <TextBox x:Name="AddBox"
+               Style="{StaticResource TodoAddBox}"
+               KeyDown="AddBox_KeyDown"
+               LostFocus="AddBox_LostFocus"/>
+    </DockPanel>
+  </Grid>
+</UserControl>

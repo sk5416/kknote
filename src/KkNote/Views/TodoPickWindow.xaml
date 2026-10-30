@@ -1,0 +1,36 @@
+<Window x:Class="KkNote.Views.TodoPickWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="选用已有待办"
+        Width="360"
+        Height="420"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13">
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0"
+                        CornerRadius="0" UseAeroCaptionButtons="False"/>
+  </shell:WindowChrome.WindowChrome>
+  <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" Height="40" Margin="14,0,8,0">
+        <TextBlock Text="选用已有待办" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        <Button Content="×" Style="{StaticResource IconButton}" HorizontalAlignment="Right"
+                shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="Close_Click"/>
+      </Grid>
+      <Grid DockPanel.Dock="Bottom" Margin="12">
+        <Button Content="取消" Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Click="Close_Click"/>
+        <Button Content="加入本页" Style="{StaticResource GhostButton}" HorizontalAlignment="Right" Click="Add_Click"/>
+      </Grid>
+      <TextBlock x:Name="EmptyHint" DockPanel.Dock="Top" Margin="14,0,14,8"
+                 Text="没有可加入的未完成待办。" Foreground="{StaticResource MutedBrush}"
+                 Visibility="Collapsed"/>
+      <ListBox x:Name="PickList" Margin="12,0" SelectionMode="Multiple"/>
+    </DockPanel>
+  </Border>
+</Window>

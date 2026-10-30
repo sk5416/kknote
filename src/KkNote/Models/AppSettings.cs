@@ -10,6 +10,11 @@ public sealed class AppSettings : ObservableObject
     private double _stackWidth = NoteLimits.DefaultWidth;
     private double _stackHeight = NoteLimits.DefaultHeight;
     private bool _stackAlwaysOnTop = true;
+    private bool _stackCollapsed;
+    private string _dateFormat = DateFormats.Md;
+    private int _dueSoonDays = TodoDate.DefaultSoonDays;
+    private double _opacity = NoteLimits.DefaultOpacity;
+    private bool _todoManualOrder;
 
     public string Hotkey
     {
@@ -57,5 +62,35 @@ public sealed class AppSettings : ObservableObject
     {
         get => _stackAlwaysOnTop;
         set => Set(ref _stackAlwaysOnTop, value);
+    }
+
+    public bool StackCollapsed
+    {
+        get => _stackCollapsed;
+        set => Set(ref _stackCollapsed, value);
+    }
+
+    public string DateFormat
+    {
+        get => _dateFormat;
+        set => Set(ref _dateFormat, TodoDate.NormalizeFormat(value));
+    }
+
+    public int DueSoonDays
+    {
+        get => _dueSoonDays;
+        set => Set(ref _dueSoonDays, TodoDate.ClampSoonDays(value));
+    }
+
+    public double Opacity
+    {
+        get => _opacity;
+        set => Set(ref _opacity, NoteLimits.ClampOpacity(value));
+    }
+
+    public bool TodoManualOrder
+    {
+        get => _todoManualOrder;
+        set => Set(ref _todoManualOrder, value);
     }
 }
